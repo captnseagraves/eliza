@@ -47,4 +47,4 @@ tsup.config.bundled_*.mjs
 .turbo
 
 .do
-setup.sh
+dinewell-setup.sh
