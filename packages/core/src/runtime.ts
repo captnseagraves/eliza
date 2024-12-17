@@ -968,6 +968,17 @@ Text: ${attachment.text}
                 .join(" ");
         }
 
+        // Handle style arrays - include all rules and format with bullet points
+        const style: { [key: string]: string } = {};
+        const styleAll = this.character.style?.all || [];
+        const styleChat = this.character.style?.chat || [];
+        const stylePost = this.character.style?.post || [];
+
+        // Format each category with bullet points
+        style.all = styleAll.map((rule) => `• ${rule}`).join("\n");
+        style.chat = styleChat.map((rule) => `• ${rule}`).join("\n");
+        style.post = stylePost.map((rule) => `• ${rule}`).join("\n");
+
         const knowledegeData = await knowledge.get(this, message);
 
         const formattedKnowledge = formatKnowledge(knowledegeData);
@@ -986,6 +997,10 @@ Text: ${attachment.text}
                           )
                       ]
                     : "",
+            style,
+            styleAll: style.all,
+            styleChat: style.chat,
+            stylePost: style.post,
             knowledge: formattedKnowledge,
             knowledgeData: knowledegeData,
             // Recent interactions between the sender and receiver, formatted as messages
@@ -1027,6 +1042,9 @@ Text: ${attachment.text}
                     ? addHeader(
                           `# Example Posts for ${this.character.name}`,
                           formattedCharacterPostExamples
+                              .split("\n")
+                              .slice(0, 25)
+                              .join("\n")
                       )
                     : "",
             characterMessageExamples:
@@ -1046,11 +1064,11 @@ Text: ${attachment.text}
                           (() => {
                               const all = this.character?.style?.all || [];
                               const chat = this.character?.style?.chat || [];
-                              return [...all, ...chat].join("\n");
+                              // Take only unique rules
+                              return [...new Set([...all, ...chat])].join("\n");
                           })()
                       )
                     : "",
-
             postDirections:
                 this.character?.style?.all?.length > 0 ||
                 this.character?.style?.post.length > 0
@@ -1059,7 +1077,8 @@ Text: ${attachment.text}
                           (() => {
                               const all = this.character?.style?.all || [];
                               const post = this.character?.style?.post || [];
-                              return [...all, ...post].join("\n");
+                              // Take only unique rules
+                              return [...new Set([...all, ...post])].join("\n");
                           })()
                       )
                     : "",

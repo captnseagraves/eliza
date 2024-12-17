@@ -115,6 +115,11 @@ export class TwitterInteractionClient {
                 )
             ).tweets;
 
+            elizaLogger.info("Found tweet candidates:", {
+                count: tweetCandidates.length,
+                lastCheckedId: this.client.lastCheckedTweetId?.toString(),
+            });
+
             // de-duplicate tweetCandidates with a set
             const uniqueTweetCandidates = [...new Set(tweetCandidates)];
             // Sort tweet candidates by ID in ascending order
@@ -122,8 +127,21 @@ export class TwitterInteractionClient {
                 .sort((a, b) => a.id.localeCompare(b.id))
                 .filter((tweet) => tweet.userId !== this.client.profile.id);
 
+            elizaLogger.info("Filtered unique tweets:", {
+                count: uniqueTweetCandidates.length,
+            });
+
             // for each tweet candidate, handle the tweet
             for (const tweet of uniqueTweetCandidates) {
+                elizaLogger.info("Processing tweet:", {
+                    id: tweet.id,
+                    currentId: BigInt(tweet.id).toString(),
+                    lastCheckedId: this.client.lastCheckedTweetId?.toString(),
+                    isNewer:
+                        !this.client.lastCheckedTweetId ||
+                        BigInt(tweet.id) > this.client.lastCheckedTweetId,
+                });
+
                 if (
                     !this.client.lastCheckedTweetId ||
                     BigInt(tweet.id) > this.client.lastCheckedTweetId
@@ -138,6 +156,11 @@ export class TwitterInteractionClient {
                         await this.runtime.messageManager.getMemoryById(
                             tweetId
                         );
+
+                    elizaLogger.info("Tweet processing status:", {
+                        tweetId,
+                        hasExistingResponse: !!existingResponse,
+                    });
 
                     if (existingResponse) {
                         elizaLogger.log(
@@ -276,6 +299,13 @@ export class TwitterInteractionClient {
                 roomId,
                 createdAt: tweet.timestamp * 1000,
             };
+
+            elizaLogger.info("Saving tweet message:", {
+                tweetId,
+                messageId: message.id,
+                inReplyTo: message.content.inReplyTo,
+            });
+
             this.client.saveRequestMessage(message, state);
         }
 
@@ -288,10 +318,22 @@ export class TwitterInteractionClient {
                 twitterShouldRespondTemplate,
         });
 
+        elizaLogger.info("Checking if should respond", {
+            tweetId,
+            hasTemplate:
+                !!this.runtime.character.templates
+                    ?.twitterShouldRespondTemplate,
+        });
+
         const shouldRespond = await generateShouldRespond({
             runtime: this.runtime,
             context: shouldRespondContext,
             modelClass: ModelClass.MEDIUM,
+        });
+
+        elizaLogger.info("Should respond decision:", {
+            tweetId,
+            decision: shouldRespond,
         });
 
         // Promise<"RESPOND" | "IGNORE" | "STOP" | null> {
@@ -303,10 +345,21 @@ export class TwitterInteractionClient {
         const context = composeContext({
             state,
             template:
-                this.runtime.character.templates
+                (this.runtime.character.templates
                     ?.twitterMessageHandlerTemplate ||
-                this.runtime.character?.templates?.messageHandlerTemplate ||
-                twitterMessageHandlerTemplate,
+                    this.runtime.character?.templates?.messageHandlerTemplate ||
+                    twitterMessageHandlerTemplate) + messageCompletionFooter,
+        });
+
+        elizaLogger.info("Template selection:", {
+            hasCharacter: !!this.runtime.character,
+            hasTemplates: !!this.runtime.character?.templates,
+            characterTemplates: Object.keys(
+                this.runtime.character?.templates || {}
+            ),
+            selectedTemplate:
+                this.runtime.character.templates
+                    ?.twitterMessageHandlerTemplate || "using fallback",
         });
 
         elizaLogger.debug("Interactions prompt:\n" + context);

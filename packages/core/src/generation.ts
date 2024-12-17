@@ -66,7 +66,10 @@ export async function generateText({
 
     elizaLogger.log("Generating text...");
 
-    elizaLogger.info("Generating text with options:", {
+    // Log the first few lines of the context to identify the template
+    const firstLines = context.split("\n").slice(0, 3).join("\n");
+    elizaLogger.info("Template context:", {
+        firstLines,
         modelProvider: runtime.modelProvider,
         model: modelClass,
     });
@@ -74,7 +77,8 @@ export async function generateText({
     const provider = runtime.modelProvider;
     const endpoint =
         runtime.character.modelEndpointOverride || models[provider].endpoint;
-    let model = models[provider].model[modelClass];
+    let model =
+        runtime.character.settings?.model || models[provider].model[modelClass];
 
     // if runtime.getSetting("LLAMACLOUD_MODEL_LARGE") is true and modelProvider is LLAMACLOUD, then use the large model
     if (
@@ -133,8 +137,16 @@ export async function generateText({
                 elizaLogger.debug("Initializing OpenAI model.");
                 const openai = createOpenAI({ apiKey, baseURL: endpoint });
 
+                const characterModel = runtime.character.settings?.model;
+                const selectedModel = characterModel || model;
+
+                elizaLogger.info("Using model for OpenAI request:", {
+                    characterModel,
+                    selectedModel,
+                });
+
                 const { text: openaiResponse } = await aiGenerateText({
-                    model: openai.languageModel(model),
+                    model: openai.languageModel(selectedModel),
                     prompt: context,
                     system:
                         runtime.character.system ??
@@ -147,6 +159,7 @@ export async function generateText({
                 });
 
                 response = openaiResponse;
+                elizaLogger.info("Received response from OpenAI model.");
                 elizaLogger.debug("Received response from OpenAI model.");
                 break;
             }
@@ -1192,6 +1205,7 @@ export async function handleProvider(
         }
     }
 }
+
 /**
  * Handles object generation for OpenAI.
  *
@@ -1207,10 +1221,21 @@ async function handleOpenAI({
     mode,
     modelOptions,
 }: ProviderOptions): Promise<GenerateObjectResult<unknown>> {
+    elizaLogger.info("Handling OpenAI request:", {
+        model,
+        schemaName,
+        mode,
+        modelOptions,
+    });
+
     const baseURL = models.openai.endpoint || undefined;
     const openai = createOpenAI({ apiKey, baseURL });
+
+    const characterModel = model;
+    const selectedModel = characterModel || model;
+
     return await aiGenerateObject({
-        model: openai.languageModel(model),
+        model: openai.languageModel(selectedModel),
         schema,
         schemaName,
         schemaDescription,

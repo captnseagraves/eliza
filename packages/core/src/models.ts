@@ -14,7 +14,8 @@ export const models: Models = {
         },
         model: {
             [ModelClass.SMALL]: "gpt-4o-mini",
-            [ModelClass.MEDIUM]: "gpt-4o",
+            [ModelClass.MEDIUM]:
+                "ft:gpt-4o-2024-08-06:bankless:rasi-finetune-1:AdpRPDOE",
             [ModelClass.LARGE]: "gpt-4o",
             [ModelClass.EMBEDDING]: "text-embedding-3-small",
             [ModelClass.IMAGE]: "dall-e-3",
