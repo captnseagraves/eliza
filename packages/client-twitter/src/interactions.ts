@@ -133,15 +133,6 @@ export class TwitterInteractionClient {
 
             // for each tweet candidate, handle the tweet
             for (const tweet of uniqueTweetCandidates) {
-                elizaLogger.info("Processing tweet:", {
-                    id: tweet.id,
-                    currentId: BigInt(tweet.id).toString(),
-                    lastCheckedId: this.client.lastCheckedTweetId?.toString(),
-                    isNewer:
-                        !this.client.lastCheckedTweetId ||
-                        BigInt(tweet.id) > this.client.lastCheckedTweetId,
-                });
-
                 if (
                     !this.client.lastCheckedTweetId ||
                     BigInt(tweet.id) > this.client.lastCheckedTweetId
@@ -156,11 +147,6 @@ export class TwitterInteractionClient {
                         await this.runtime.messageManager.getMemoryById(
                             tweetId
                         );
-
-                    elizaLogger.info("Tweet processing status:", {
-                        tweetId,
-                        hasExistingResponse: !!existingResponse,
-                    });
 
                     if (existingResponse) {
                         elizaLogger.log(
@@ -318,25 +304,12 @@ export class TwitterInteractionClient {
                 twitterShouldRespondTemplate,
         });
 
-        elizaLogger.info("Checking if should respond", {
-            tweetId,
-            hasTemplate:
-                !!this.runtime.character.templates
-                    ?.twitterShouldRespondTemplate,
-        });
-
         const shouldRespond = await generateShouldRespond({
             runtime: this.runtime,
             context: shouldRespondContext,
             modelClass: ModelClass.MEDIUM,
         });
 
-        elizaLogger.info("Should respond decision:", {
-            tweetId,
-            decision: shouldRespond,
-        });
-
-        // Promise<"RESPOND" | "IGNORE" | "STOP" | null> {
         if (shouldRespond !== "RESPOND") {
             elizaLogger.log("Not responding to message");
             return { text: "Response Decision:", action: shouldRespond };
@@ -350,19 +323,6 @@ export class TwitterInteractionClient {
                     this.runtime.character?.templates?.messageHandlerTemplate ||
                     twitterMessageHandlerTemplate) + messageCompletionFooter,
         });
-
-        elizaLogger.info("Template selection:", {
-            hasCharacter: !!this.runtime.character,
-            hasTemplates: !!this.runtime.character?.templates,
-            characterTemplates: Object.keys(
-                this.runtime.character?.templates || {}
-            ),
-            selectedTemplate:
-                this.runtime.character.templates
-                    ?.twitterMessageHandlerTemplate || "using fallback",
-        });
-
-        elizaLogger.debug("Interactions prompt:\n" + context);
 
         const response = await generateMessageResponse({
             runtime: this.runtime,
