@@ -115,21 +115,12 @@ export class TwitterInteractionClient {
                 )
             ).tweets;
 
-            elizaLogger.info("Found tweet candidates:", {
-                count: tweetCandidates.length,
-                lastCheckedId: this.client.lastCheckedTweetId?.toString(),
-            });
-
             // de-duplicate tweetCandidates with a set
             const uniqueTweetCandidates = [...new Set(tweetCandidates)];
             // Sort tweet candidates by ID in ascending order
             uniqueTweetCandidates
                 .sort((a, b) => a.id.localeCompare(b.id))
                 .filter((tweet) => tweet.userId !== this.client.profile.id);
-
-            elizaLogger.info("Filtered unique tweets:", {
-                count: uniqueTweetCandidates.length,
-            });
 
             // for each tweet candidate, handle the tweet
             for (const tweet of uniqueTweetCandidates) {

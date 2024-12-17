@@ -20,4 +20,4 @@
 
 ## Defined in
 
-[packages/core/src/generation.ts:687](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L687)
+[packages/core/src/generation.ts:688](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L688)

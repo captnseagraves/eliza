@@ -12,7 +12,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1053](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1053)
+[packages/core/src/generation.ts:1054](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1054)
 
 ***
 
@@ -22,7 +22,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1054](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1054)
+[packages/core/src/generation.ts:1055](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1055)
 
 ***
 
@@ -32,7 +32,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1055](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1055)
+[packages/core/src/generation.ts:1056](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1056)
 
 ***
 
@@ -42,7 +42,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1056](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1056)
+[packages/core/src/generation.ts:1057](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1057)
 
 ***
 
@@ -52,7 +52,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1057](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1057)
+[packages/core/src/generation.ts:1058](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1058)
 
 ***
 
@@ -62,7 +62,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1058](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1058)
+[packages/core/src/generation.ts:1059](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1059)
 
 ***
 
@@ -72,7 +72,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1059](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1059)
+[packages/core/src/generation.ts:1060](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1060)
 
 ***
 
@@ -82,7 +82,7 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1060](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1060)
+[packages/core/src/generation.ts:1061](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1061)
 
 ***
 
@@ -92,4 +92,4 @@ Configuration options for generating objects with a model.
 
 #### Defined in
 
-[packages/core/src/generation.ts:1061](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1061)
+[packages/core/src/generation.ts:1062](https://github.com/captnseagraves/eliza/blob/main/packages/core/src/generation.ts#L1062)
