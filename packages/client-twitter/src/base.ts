@@ -218,57 +218,102 @@ export class ClientBase extends EventEmitter {
         await this.populateTimeline();
     }
 
-    async fetchHomeTimeline(count: number): Promise<Tweet[]> {
-        elizaLogger.debug("fetching home timeline");
-        const homeTimeline = await this.twitterClient.getUserTweets(
-            this.profile.id,
-            count
-        );
+    public async fetchFollowingTimeline(count: number): Promise<Tweet[]> {
+        elizaLogger.debug("[Client] Fetching following timeline");
+        try {
+            elizaLogger.debug("[Client] Making API call with count:", count);
+            const response = await this.twitterClient
+                .fetchFollowingTimeline(count, [])
+                .catch((error) => {
+                    elizaLogger.error("[Client] API call error:", error);
+                    throw error;
+                });
 
-        // console.dir(homeTimeline, { depth: Infinity });
+            elizaLogger.debug("[Client] Raw response type:", typeof response);
 
-        return homeTimeline.tweets;
-        // .filter((t) => t.__typename !== "TweetWithVisibilityResults")
-        // .map((tweet) => {
-        //     // console.log("tweet is", tweet);
-        //     const obj = {
-        //         id: tweet.id,
-        //         name:
-        //             tweet.name ??
-        //             tweet. ?.user_results?.result?.legacy.name,
-        //         username:
-        //             tweet.username ??
-        //             tweet.core?.user_results?.result?.legacy.screen_name,
-        //         text: tweet.text ?? tweet.legacy?.full_text,
-        //         inReplyToStatusId:
-        //             tweet.inReplyToStatusId ??
-        //             tweet.legacy?.in_reply_to_status_id_str,
-        //         createdAt: tweet.createdAt ?? tweet.legacy?.created_at,
-        //         userId: tweet.userId ?? tweet.legacy?.user_id_str,
-        //         conversationId:
-        //             tweet.conversationId ??
-        //             tweet.legacy?.conversation_id_str,
-        //         hashtags: tweet.hashtags ?? tweet.legacy?.entities.hashtags,
-        //         mentions:
-        //             tweet.mentions ?? tweet.legacy?.entities.user_mentions,
-        //         photos:
-        //             tweet.photos ??
-        //             tweet.legacy?.entities.media?.filter(
-        //                 (media) => media.type === "photo"
-        //             ) ??
-        //             [],
-        //         thread: [],
-        //         urls: tweet.urls ?? tweet.legacy?.entities.urls,
-        //         videos:
-        //             tweet.videos ??
-        //             tweet.legacy?.entities.media?.filter(
-        //                 (media) => media.type === "video"
-        //             ) ??
-        //             [],
-        //     };
-        //     // console.log("obj is", obj);
-        //     return obj;
-        // });
+            if (!response) {
+                elizaLogger.warn("[Client] Response is null or undefined");
+                return [];
+            }
+
+            // Handle case where response is the array of tweets directly
+            const rawTweets = Array.isArray(response)
+                ? response
+                : response.tweets;
+
+            if (!rawTweets || !Array.isArray(rawTweets)) {
+                elizaLogger.warn(
+                    "[Client] No valid tweets array in response:",
+                    JSON.stringify(response, null, 2)
+                );
+                return [];
+            }
+
+            const originalTweets = rawTweets.filter(
+                (tweet) =>
+                    // Not a retweet (check both metadata and text)
+                    !tweet.legacy?.retweeted_status_result &&
+                    !tweet.legacy?.full_text?.startsWith("RT @") &&
+                    !tweet.text?.startsWith("RT @") &&
+                    // Not a quote tweet
+                    !tweet.legacy?.is_quote_status &&
+                    // Additional check for retweet_status field
+                    !tweet.legacy?.retweeted_status
+            );
+
+            elizaLogger.debug(
+                `[Client] Filtered ${rawTweets.length - originalTweets.length} retweets/quotes`
+            );
+
+            // Transform tweets to expected format
+            const tweets = originalTweets.map((tweet) => ({
+                id: tweet.rest_id || tweet.id_str || tweet.id,
+                userId: tweet.legacy?.user_id_str || tweet.user_id_str,
+                username:
+                    tweet.core?.user_results?.result?.legacy?.screen_name ||
+                    tweet.username,
+                text: tweet.legacy?.full_text || tweet.text,
+                conversationId:
+                    tweet.legacy?.conversation_id_str || tweet.conversation_id,
+                timestamp:
+                    new Date(
+                        tweet.legacy?.created_at || tweet.created_at
+                    ).getTime() / 1000,
+                inReplyToStatusId:
+                    tweet.legacy?.in_reply_to_status_id_str ||
+                    tweet.in_reply_to_status_id,
+                // Add engagement metrics
+                favoriteCount: tweet.legacy?.favorite_count || 0,
+                retweetCount: tweet.legacy?.retweet_count || 0,
+                replyCount: tweet.legacy?.reply_count || 0,
+                quoteCount: tweet.legacy?.quote_count || 0,
+                // Add user metrics for relevance calculation
+                userFollowersCount:
+                    tweet.core?.user_results?.result?.legacy?.followers_count ||
+                    0,
+                userFriendsCount:
+                    tweet.core?.user_results?.result?.legacy?.friends_count ||
+                    0,
+                userStatusesCount:
+                    tweet.core?.user_results?.result?.legacy?.statuses_count ||
+                    0,
+                // Add entities for topic analysis
+                hashtags: tweet.legacy?.entities?.hashtags || [],
+                mentions: tweet.legacy?.entities?.user_mentions || [],
+                urls: tweet.legacy?.entities?.urls || [],
+            }));
+
+            elizaLogger.debug(
+                `[Client] Retrieved ${tweets.length} tweets from following`
+            );
+            return tweets;
+        } catch (error) {
+            elizaLogger.error(
+                `[Client] Error fetching following timeline: ${error}`,
+                error instanceof Error ? error.stack : ""
+            );
+            return [];
+        }
     }
 
     async fetchSearchTweets(
@@ -435,7 +480,9 @@ export class ClientBase extends EventEmitter {
             }
         }
 
-        const timeline = await this.fetchHomeTimeline(cachedTimeline ? 10 : 50);
+        const timeline = await this.fetchFollowingTimeline(
+            cachedTimeline ? 10 : 50
+        );
 
         // Get the most recent 20 mentions and interactions
         const mentionsAndInteractions = await this.fetchSearchTweets(

@@ -281,3 +281,36 @@ function splitParagraph(paragraph: string, maxLength: number): string[] {
 
     return chunks;
 }
+
+export function truncateToCompleteSentence(text: string): string {
+    // Define sentence ending punctuation
+    const sentenceEndings = ['.', '!', '?'];
+    
+    // If text is shorter than 280 characters, return as is
+    if (text.length <= 280) {
+        return text;
+    }
+    
+    // Find the last sentence ending before 280 characters
+    let lastIndex = -1;
+    for (const ending of sentenceEndings) {
+        const index = text.lastIndexOf(ending, 280);
+        if (index > lastIndex) {
+            lastIndex = index;
+        }
+    }
+    
+    // If we found a sentence ending, truncate there
+    if (lastIndex !== -1) {
+        return text.substring(0, lastIndex + 1).trim();
+    }
+    
+    // If no sentence ending found, truncate at last space before 280
+    const lastSpace = text.lastIndexOf(' ', 280);
+    if (lastSpace !== -1) {
+        return text.substring(0, lastSpace).trim() + '...';
+    }
+    
+    // If no space found, just truncate at 280 with ellipsis
+    return text.substring(0, 277).trim() + '...';
+}
