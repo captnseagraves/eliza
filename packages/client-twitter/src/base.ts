@@ -491,8 +491,11 @@ export class ClientBase extends EventEmitter {
             SearchMode.Latest
         );
 
-        // Combine the timeline tweets and mentions/interactions
-        const allTweets = [...timeline, ...mentionsAndInteractions.tweets];
+        // Combine the timeline tweets and mentions/interactions, filtering out invalid tweets
+        const allTweets = [
+            ...timeline,
+            ...mentionsAndInteractions.tweets,
+        ].filter((tweet) => tweet && tweet.id && typeof tweet.id === "string");
 
         // Create a Set to store unique tweet IDs
         const tweetIdsToCheck = new Set<string>();
@@ -500,10 +503,14 @@ export class ClientBase extends EventEmitter {
 
         // Add tweet IDs to the Set
         for (const tweet of allTweets) {
+            const conversationId = tweet.conversationId?.toString() || tweet.id; // tweet.id is already validated as string
+            const agentId = this.runtime.agentId?.toString() || "";
+            if (!conversationId || !agentId) {
+                elizaLogger.warn(`Missing required ID for tweet ${tweet.id}`);
+                continue;
+            }
             tweetIdsToCheck.add(tweet.id);
-            roomIds.add(
-                stringToUuid(tweet.conversationId + "-" + this.runtime.agentId)
-            );
+            roomIds.add(stringToUuid(`${conversationId}-${agentId}`));
         }
 
         // Check the existing memories in the database

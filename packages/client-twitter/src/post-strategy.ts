@@ -245,7 +245,7 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
 
     constructor(runtime: IAgentRuntime, client: ClientBase) {
         super(runtime, client);
-        this.timelineAnalyzer = new TimelineAnalyzer();
+        this.timelineAnalyzer = new TimelineAnalyzer(runtime);
         this.topicGenerator = new TopicGenerator(
             this.runtime.character.topics,
             this.runtime.getSetting("DATA_DIR") || "./data"
@@ -258,68 +258,53 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
             elizaLogger.log("[Strategy] Using Timeline Analysis Strategy");
 
             // Fetch following timeline
-            try {
-                elizaLogger.log("[Strategy] Fetching following timeline...");
-                const timeline = await this.client.fetchFollowingTimeline(1);
+            elizaLogger.log("[Strategy] Fetching following timeline...");
+            const timeline = await this.client.fetchFollowingTimeline(1);
 
-                if (!timeline) {
-                    throw new Error("Timeline is null or undefined");
-                }
-
-                elizaLogger.log(
-                    `[Strategy] Retrieved ${timeline.length} tweets from following`
-                );
-
-                if (timeline.length === 0) {
-                    throw new Error("No tweets returned from timeline");
-                }
-
-                // Log first tweet for debugging
-                if (timeline[0]) {
-                    elizaLogger.log(
-                        `[Strategy] First tweet structure: ${JSON.stringify(
-                            {
-                                id: timeline[0].id,
-                                text: timeline[0].text?.substring(0, 100),
-                                hasText: !!timeline[0].text,
-                                hasId: !!timeline[0].id,
-                                fullTweet: timeline[0],
-                            },
-                            null,
-                            2
-                        )}`
-                    );
-                }
-
-                // Analyze timeline
-                elizaLogger.log("[Strategy] Starting timeline analysis...");
-                const analysis =
-                    await this.timelineAnalyzer.analyzeTimeline(timeline);
-                elizaLogger.log("[Strategy] Timeline analysis complete");
-
-                // Generate topic suggestion
-                elizaLogger.log("[Strategy] Generating topic suggestion...");
-                const topicSuggestion =
-                    await this.topicGenerator.generateTopic(analysis);
-                elizaLogger.log(
-                    `[Strategy] Generated topic: "${topicSuggestion.topic}" (confidence: ${topicSuggestion.confidence})`
-                );
-
-                // Generate and post tweet
-                await this.generateTweetWithTopic(topicSuggestion);
-            } catch (error) {
-                const errorMessage =
-                    error instanceof Error
-                        ? error.message
-                        : JSON.stringify(error);
-                elizaLogger.error(
-                    `[Strategy] Timeline analysis error: ${errorMessage}`
-                );
-                if (error instanceof Error && error.stack) {
-                    elizaLogger.error(`[Strategy] Stack trace: ${error.stack}`);
-                }
-                throw error;
+            if (!timeline) {
+                throw new Error("Timeline is null or undefined");
             }
+
+            elizaLogger.log(
+                `[Strategy] Retrieved ${timeline.length} tweets from following`
+            );
+
+            if (timeline.length === 0) {
+                throw new Error("No tweets returned from timeline");
+            }
+
+            // Analyze timeline
+            elizaLogger.log("[Strategy] Starting timeline analysis...");
+            const analysis =
+                await this.timelineAnalyzer.analyzeTimeline(timeline);
+            elizaLogger.log("[Strategy] Timeline analysis complete");
+
+            // Find the highest engagement cluster
+            const topCluster = analysis.clusters.sort(
+                (a, b) => b.engagementScore - a.engagementScore
+            )[0];
+
+            if (!topCluster) {
+                throw new Error("No valid topic clusters found");
+            }
+
+            // Create topic suggestion from top cluster
+            const topicSuggestion: TopicSuggestion = {
+                topic: topCluster.topic,
+                confidence: 1.0, // High confidence since this is based on actual engagement
+                contextualInfo: {
+                    relatedTopics: [],
+                    conversationContext: "General discussion",
+                    timelineContext: `Topic "${topCluster.topic}". Engagement score of ${topCluster.engagementScore}`,
+                },
+            };
+
+            elizaLogger.log(
+                `[Strategy] Using top cluster topic: "${topicSuggestion.topic}" (engagement: ${topCluster.engagementScore})`
+            );
+
+            // Generate and post tweet
+            await this.generateTweetWithTopic(topicSuggestion);
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : JSON.stringify(error);
@@ -368,8 +353,7 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
                 bio: this.runtime.character.bio,
                 lore: this.runtime.character.lore,
                 stylePost: this.runtime.character.style.post,
-                characterPostExamples:
-                    this.runtime.character.postExamples,
+                characterPostExamples: this.runtime.character.postExamples,
                 timelineContext:
                     topicSuggestion.contextualInfo.timelineContext || "",
             }

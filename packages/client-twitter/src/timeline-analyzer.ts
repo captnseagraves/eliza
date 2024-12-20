@@ -1,5 +1,6 @@
 import { Tweet } from "agent-twitter-client";
 import { elizaLogger } from "@ai16z/eliza";
+import { IAgentRuntime, generateText } from "@ai16z/eliza";
 
 export interface TweetEngagement {
     likes: number;
@@ -17,53 +18,25 @@ export interface TimelineAnalysis {
     individual: {
         tweetId: string;
         engagement: TweetEngagement;
-        topicRelevance: number;
+        topicScore: number;
+        topics: string[];
         clusterIds: string[];
     }[];
     clusters: {
         clusterId: string;
         topic: string;
         totalEngagement: ClusterEngagement;
-        momentum: number;
         tweets: string[];
-        duration: number;
+        engagementScore: number;
+        engagementRate: number;
+        participantCount: number;
     }[];
-    aggregateMetrics: {
-        topPerformingTopics: string[];
-        sustainedDiscussions: string[];
-        emergingTrends: string[];
-    };
 }
 
-export const ANALYSIS_WEIGHTS = {
-    recency: 0.2,
-    engagement: 0.4,
-    clusterRelevance: 0.4,
-};
-
 export class TimelineAnalyzer {
-    private async processTweetBatch(tweets: Tweet[], batchSize: number = 100) {
-        const batches = this.chunkArray(tweets, batchSize);
-        return Promise.all(batches.map((batch) => this.analyzeBatch(batch)));
-    }
+    constructor(private runtime?: IAgentRuntime) {}
 
-    private chunkArray<T>(array: T[], size: number): T[][] {
-        const chunks: T[][] = [];
-        for (let i = 0; i < array.length; i += size) {
-            chunks.push(array.slice(i, i + size));
-        }
-        return chunks;
-    }
-
-    private async analyzeBatch(tweets: Tweet[]) {
-        const individualAnalysis = tweets.map((tweet) =>
-            this.analyzeTweet(tweet)
-        );
-        const clusters = this.formClusters(tweets);
-        return { individual: individualAnalysis, clusters };
-    }
-
-    private analyzeTweet(tweet: Tweet) {
+    private async analyzeTweet(tweet: Tweet) {
         try {
             elizaLogger.log(
                 `[TimelineAnalyzer] Starting analysis of tweet: ${JSON.stringify(
@@ -102,15 +75,18 @@ export class TimelineAnalyzer {
                 `[TimelineAnalyzer] Tweet ${tweet.id} engagement metrics: ${JSON.stringify(engagement, null, 2)}`
             );
 
-            const topicRelevance = this.calculateTopicRelevance(tweet);
+            const topic = await this.extractTopic(tweet.text);
+            const topicScore = this.calculateTopicScore(tweet, topic);
+
             elizaLogger.log(
-                `[TimelineAnalyzer] Tweet ${tweet.id} topic relevance: ${topicRelevance}`
+                `[TimelineAnalyzer] Tweet ${tweet.id} topic score: ${topicScore}`
             );
 
             return {
                 tweetId: tweet.id,
                 engagement,
-                topicRelevance,
+                topicScore,
+                topics: topic ? [topic] : [],
                 clusterIds: [],
             };
         } catch (error) {
@@ -128,19 +104,168 @@ export class TimelineAnalyzer {
         }
     }
 
-    private calculateTopicRelevance(tweet: Tweet): number {
+    private async extractTopic(text: string): Promise<string | null> {
+        if (!this.runtime) {
+            return null;
+        }
+
+        try {
+            const prompt = `
+            Analyze the following tweet and extract its main topic.
+            Return only the single most relevant topic, with no additional text.
+            The topic should be a short phrase (1-3 words) that captures the main subject.
+
+            Tweet: "${text}"
+            `;
+
+            const response = await generateText({
+                runtime: this.runtime,
+                context: prompt,
+                modelClass: "small"
+            });
+            const topic = response.trim();
+            return topic || null;
+        } catch (error) {
+            elizaLogger.error(`Error extracting topic: ${error}`);
+            return null;
+        }
+    }
+
+    private async formClusters(
+        tweets: Tweet[],
+        individualAnalyses: TimelineAnalysis["individual"]
+    ) {
+        // First, collect all unique topics
+        const uniqueTopics = new Set<string>();
+        individualAnalyses.forEach(analysis => {
+            if (analysis.topics[0] && analysis.topics[0] !== "uncategorized") {
+                uniqueTopics.add(analysis.topics[0]);
+            }
+        });
+
+        // Create topic similarity groups
+        const topicGroups: { mainTopic: string; similarTopics: Set<string> }[] = [];
+        const processedTopics = new Set<string>();
+
+        for (const topic of uniqueTopics) {
+            if (processedTopics.has(topic)) continue;
+
+            const similarTopics = new Set<string>([topic]);
+            processedTopics.add(topic);
+
+            // Compare with other unprocessed topics
+            for (const otherTopic of uniqueTopics) {
+                if (processedTopics.has(otherTopic)) continue;
+
+                const areSimilar = await this.areTopicsSimilar(topic, otherTopic);
+                if (areSimilar) {
+                    similarTopics.add(otherTopic);
+                    processedTopics.add(otherTopic);
+                }
+            }
+
+            topicGroups.push({
+                mainTopic: topic,
+                similarTopics
+            });
+        }
+
+        // Create clusters based on topic groups
+        const topicClusters = new Map<
+            string,
+            {
+                tweets: Tweet[];
+                analyses: TimelineAnalysis["individual"][0][];
+            }
+        >();
+
+        // Initialize clusters with main topics
+        topicGroups.forEach(group => {
+            topicClusters.set(group.mainTopic, { tweets: [], analyses: [] });
+        });
+
+        // Assign tweets to clusters
+        individualAnalyses.forEach((analysis, index) => {
+            const tweet = tweets[index];
+            const tweetTopic = analysis.topics[0];
+
+            if (!tweetTopic || tweetTopic === "uncategorized") return;
+
+            // Find the group this topic belongs to
+            const group = topicGroups.find(g => g.similarTopics.has(tweetTopic));
+            if (group) {
+                const cluster = topicClusters.get(group.mainTopic)!;
+                cluster.tweets.push(tweet);
+                cluster.analyses.push(analysis);
+            }
+        });
+
+        // Convert clusters to final format
+        return Array.from(topicClusters.entries())
+            .filter(([_, cluster]) => cluster.tweets.length > 0)
+            .map(([topic, cluster]) => {
+                const engagement = this.calculateClusterEngagement(cluster.tweets);
+
+                // Calculate total engagement score
+                const engagementScore =
+                    engagement.likes +
+                    (engagement.retweets * 2) + // Weight retweets more
+                    (engagement.replies * 1.5) + // Weight replies slightly more
+                    engagement.quotes;
+
+                // Calculate engagement rate (per tweet)
+                const engagementRate = engagementScore / cluster.tweets.length;
+
+                return {
+                    clusterId: topic.replace(/\s+/g, "-").toLowerCase(),
+                    topic: topic,
+                    totalEngagement: engagement,
+                    tweets: cluster.tweets.map((t) => t.id),
+                    engagementScore,
+                    engagementRate,
+                    participantCount: engagement.participantCount,
+                };
+            })
+            .sort((a, b) => b.engagementScore - a.engagementScore); // Sort by engagement score
+    }
+
+    private async areTopicsSimilar(topic1: string, topic2: string): Promise<boolean> {
+        if (!this.runtime) return false;
+
+        try {
+            const prompt = `
+            Compare these two topics and determine if they are semantically similar or related enough to be grouped together.
+            Answer with only "yes" or "no".
+
+            Topic 1: "${topic1}"
+            Topic 2: "${topic2}"
+            `;
+
+            const response = await generateText({
+                runtime: this.runtime,
+                context: prompt,
+                modelClass: "small"
+            });
+            return response.trim().toLowerCase() === "yes";
+        } catch (error) {
+            elizaLogger.error(`Error comparing topics: ${error}`);
+            return false;
+        }
+    }
+
+    private calculateTopicScore(tweet: Tweet, topic: string | null): number {
         try {
             if (!tweet.text) {
                 return 0;
             }
-            // Simple relevance calculation based on engagement
+
             const engagementScore =
                 (tweet.favoriteCount || 0) * 1 +
                 (tweet.retweetCount || 0) * 2 +
                 (tweet.replyCount || 0) * 1.5 +
                 (tweet.quoteCount || 0) * 1.5;
 
-            return Math.min(engagementScore / 1000, 1); // Normalize to 0-1
+            return engagementScore;
         } catch (error) {
             elizaLogger.error(
                 `[TimelineAnalyzer] Error calculating topic relevance: ${error}`
@@ -149,66 +274,30 @@ export class TimelineAnalyzer {
         }
     }
 
-    private formClusters(tweets: Tweet[]) {
-        // Group tweets into clusters based on conversation threads and topic similarity
-        // This is a placeholder implementation
-        const clusters = new Map<string, Tweet[]>();
-
-        tweets.forEach((tweet) => {
-            const conversationId = tweet.conversationId || tweet.id;
-            if (!clusters.has(conversationId)) {
-                clusters.set(conversationId, []);
-            }
-            clusters.get(conversationId)?.push(tweet);
-        });
-
-        return Array.from(clusters.entries()).map(
-            ([clusterId, clusterTweets]) => ({
-                clusterId,
-                topic: this.extractClusterTopic(clusterTweets),
-                totalEngagement: this.calculateClusterEngagement(clusterTweets),
-                momentum: this.calculateClusterMomentum(clusterTweets),
-                tweets: clusterTweets.map((t) => t.id),
-                duration: this.calculateClusterDuration(clusterTweets),
-            })
-        );
-    }
-
-    private extractClusterTopic(tweets: Tweet[]): string {
-        // Find first non-retweet tweet
-        const originalTweet = tweets.find((t) => !t.text?.startsWith("RT @"));
-        return originalTweet?.text?.slice(0, 50) || "Unknown Topic";
-    }
-
     private calculateClusterEngagement(tweets: Tweet[]): ClusterEngagement {
-        const participants = new Set(tweets.map((t) => t.userId));
-        const maxDepth = Math.max(
-            ...tweets.map((t) => t.conversationDepth || 0)
+        // Calculate total engagement metrics
+        const totalEngagement = tweets.reduce(
+            (acc, tweet) => {
+                acc.likes += tweet.favoriteCount || 0;
+                acc.retweets += tweet.retweetCount || 0;
+                acc.replies += tweet.replyCount || 0;
+                acc.quotes += tweet.quoteCount || 0;
+                return acc;
+            },
+            { likes: 0, retweets: 0, replies: 0, quotes: 0 }
         );
+
+        // Calculate unique participants
+        const participants = new Set(tweets.map((t) => t.userId));
+
+        // Calculate conversation depth (max reply depth in thread)
+        const maxDepth = Math.max(...tweets.map((t) => t.conversationDepth || 0));
 
         return {
-            likes: tweets.reduce((sum, t) => sum + (t.favoriteCount || 0), 0),
-            retweets: tweets.reduce((sum, t) => sum + (t.retweetCount || 0), 0),
-            replies: tweets.reduce((sum, t) => sum + (t.replyCount || 0), 0),
-            quotes: tweets.reduce((sum, t) => sum + (t.quoteCount || 0), 0),
+            ...totalEngagement,
             participantCount: participants.size,
             conversationDepth: maxDepth,
         };
-    }
-
-    private calculateClusterMomentum(tweets: Tweet[]): number {
-        // Calculate momentum based on engagement over time
-        // This is a placeholder implementation
-        return tweets.length;
-    }
-
-    private calculateClusterDuration(tweets: Tweet[]): number {
-        const timestamps = tweets.map((t) =>
-            new Date(t.timestamp * 1000).getTime()
-        );
-        const newest = Math.max(...timestamps);
-        const oldest = Math.min(...timestamps);
-        return newest - oldest;
     }
 
     public async analyzeTimeline(tweets: Tweet[]): Promise<TimelineAnalysis> {
@@ -217,71 +306,30 @@ export class TimelineAnalyzer {
                 throw new Error("No tweets provided for analysis");
             }
 
-            elizaLogger.log(
-                `[TimelineAnalyzer] Starting analysis of ${tweets.length} tweets`
+            // Filter out invalid tweets
+            const validTweets = tweets.filter(tweet => 
+                tweet && 
+                tweet.id && 
+                tweet.text && 
+                typeof tweet.id === 'string' &&
+                typeof tweet.text === 'string'
             );
 
-            // Log sample tweet structure
-            if (tweets[0]) {
-                elizaLogger.log(
-                    `[TimelineAnalyzer] First tweet: ${JSON.stringify({
-                        id: tweets[0].id,
-                        text: tweets[0].text?.substring(0, 100),
-                        hasText: !!tweets[0].text,
-                        hasId: !!tweets[0].id,
-                    })}`
-                );
+            if (validTweets.length === 0) {
+                throw new Error("No valid tweets found for analysis");
             }
 
-            try {
-                elizaLogger.log(
-                    "[TimelineAnalyzer] Processing tweet batches..."
-                );
-                const batchResults = await this.processTweetBatch(tweets);
-                elizaLogger.log(
-                    `[TimelineAnalyzer] Processed ${batchResults.length} batches`
-                );
+            elizaLogger.log(
+                `[TimelineAnalyzer] Starting analysis of ${validTweets.length} tweets`
+            );
 
-                const individual = batchResults.flatMap((r) => r.individual);
-                const clusters = batchResults.flatMap((r) => r.clusters);
-                elizaLogger.log(
-                    `[TimelineAnalyzer] Found ${individual.length} individual tweets and ${clusters.length} clusters`
-                );
+            const individual = await Promise.all(validTweets.map(tweet => this.analyzeTweet(tweet)));
+            const clusters = await this.formClusters(validTweets, individual);
 
-                // Calculate aggregate metrics
-                elizaLogger.log("[TimelineAnalyzer] Calculating metrics...");
-                const aggregateMetrics = {
-                    topPerformingTopics:
-                        this.extractTopPerformingTopics(clusters),
-                    sustainedDiscussions:
-                        this.extractSustainedDiscussions(clusters),
-                    emergingTrends: this.extractEmergingTrends(clusters),
-                };
-
-                elizaLogger.log(
-                    `[TimelineAnalyzer] Metrics calculated: ${JSON.stringify(aggregateMetrics)}`
-                );
-
-                return {
-                    individual,
-                    clusters,
-                    aggregateMetrics,
-                };
-            } catch (processingError) {
-                const errorMessage =
-                    processingError instanceof Error
-                        ? processingError.message
-                        : JSON.stringify(processingError);
-                elizaLogger.error(
-                    `[TimelineAnalyzer] Processing error: ${errorMessage}`
-                );
-                if (processingError instanceof Error && processingError.stack) {
-                    elizaLogger.error(
-                        `[TimelineAnalyzer] Stack trace: ${processingError.stack}`
-                    );
-                }
-                throw processingError;
-            }
+            return {
+                individual,
+                clusters
+            };
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : JSON.stringify(error);
@@ -295,39 +343,5 @@ export class TimelineAnalyzer {
             }
             throw error;
         }
-    }
-
-    private extractTopPerformingTopics(clusters: any[]): string[] {
-        // Extract top performing topics based on engagement
-        return clusters
-            .sort(
-                (a, b) =>
-                    this.calculateTotalEngagement(b) -
-                    this.calculateTotalEngagement(a)
-            )
-            .slice(0, 5)
-            .map((c) => c.topic);
-    }
-
-    private calculateTotalEngagement(cluster: any): number {
-        const eng = cluster.totalEngagement;
-        return eng.likes + eng.retweets * 2 + eng.replies * 3 + eng.quotes * 2;
-    }
-
-    private extractSustainedDiscussions(clusters: any[]): string[] {
-        // Extract topics with sustained engagement
-        return clusters
-            .filter((c) => c.duration > 3600000) // More than 1 hour
-            .sort((a, b) => b.duration - a.duration)
-            .slice(0, 5)
-            .map((c) => c.topic);
-    }
-
-    private extractEmergingTrends(clusters: any[]): string[] {
-        // Extract topics with high momentum
-        return clusters
-            .sort((a, b) => b.momentum - a.momentum)
-            .slice(0, 5)
-            .map((c) => c.topic);
     }
 }
