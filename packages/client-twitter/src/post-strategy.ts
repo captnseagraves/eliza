@@ -9,7 +9,7 @@ import {
 } from "@ai16z/eliza";
 import { Tweet } from "agent-twitter-client";
 import { TimelineAnalyzer } from "./timeline-analyzer";
-import { TopicGenerator, TopicSuggestion } from "./topic-generator";
+import { TopicGenerator } from "./topic-generator";
 import { ClientBase } from "./base";
 import { elizaLogger } from "@ai16z/eliza";
 import { truncateToCompleteSentence } from "./utils";
@@ -74,13 +74,15 @@ Formatting Rules:
   8. You do not give alpha about yourself. Only about the mission of going Bankless and crypto markets in general.
   9. Never state the current price of ETH.
 
+  YOUR RESPONSE MUST BE CONSISTENT WITH THE TONE AND STYLE OF YOUR MEMORIES
+  {{characterPostExamples}}
+
   YOU MUST FOLLOW ALL OF THESE WRITING RULES:
   {{stylePost}}
 
   Be an edgy thought leader and craft a tweet that is as interesting, entertaining, and engaging as possible
   The tweet must be is 200-250 characters long and be about {{suggestedTopic}}.
   Make sure the post follows the formatting and core rules, and includes viral elements and engagement amplifiers.
-  Do not provide any analysis of these elements in your response.
   Don't hold back, really be {{characterName}} to the max. Get people talking.
 `;
 
@@ -188,7 +190,7 @@ export class LegacyPostStrategy implements PostGenerationStrategy {
     }
 
     protected async generateTweetWithTopic(
-        topicSuggestion: TopicSuggestion
+        topicSuggestion: any
     ): Promise<void> {
         elizaLogger.log(
             `📝 Generating tweet for topic: "${topicSuggestion.topic}"`
@@ -362,35 +364,13 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
                 throw new Error("No tweets returned from timeline");
             }
 
-            // Analyze timeline
+            // Analyze timeline and get topic
             elizaLogger.log("[Strategy] Starting timeline analysis...");
-            const analysis =
-                await this.timelineAnalyzer.analyzeTimeline(timeline);
-            elizaLogger.log("[Strategy] Timeline analysis complete");
+            const selectedTopic = await this.timelineAnalyzer.analyzeTimelineForTopic(timeline);
+            elizaLogger.log(`[Strategy] Selected topic: ${selectedTopic}`);
 
-            // Find the highest engagement cluster
-            const topCluster = analysis.clusters.sort(
-                (a, b) => b.engagementScore - a.engagementScore
-            )[0];
-
-            if (!topCluster) {
-                throw new Error("No valid topic clusters found");
-            }
-
-            // Create topic suggestion from top cluster
-            const topicSuggestion: TopicSuggestion = {
-                topic: topCluster.topic,
-                confidence: 1.0, // High confidence since this is based on actual engagement
-                contextualInfo: {
-                    relatedTopics: [],
-                    conversationContext: "General discussion",
-                    timelineContext: `Topic "${topCluster.topic}". Engagement score of ${topCluster.engagementScore}`,
-                },
-            };
-
-            elizaLogger.log(
-                `[Strategy] Using top cluster topic: "${topicSuggestion.topic}" (engagement: ${topCluster.engagementScore})`
-            );
+            // Create topic suggestion
+            const topicSuggestion = selectedTopic
 
             // Generate and post tweet
             await this.generateTweetWithTopic(topicSuggestion);
@@ -405,16 +385,12 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
     }
 
     protected async generateTweetWithTopic(
-        topicSuggestion: TopicSuggestion
+        topic: string
     ): Promise<void> {
         elizaLogger.log(
-            `📝 Generating tweet for topic: "${topicSuggestion.topic}"`
+            `📝 Generating tweet for topic: "${topic}"`
         );
-        if (topicSuggestion.contextualInfo.timelineContext) {
-            elizaLogger.log(
-                `🌍 Timeline Context: ${topicSuggestion.contextualInfo.timelineContext}`
-            );
-        }
+
         const roomId = stringToUuid(
             "twitter_generate_room-" + this.client.profile.username
         );
@@ -432,19 +408,17 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
                 roomId: roomId,
                 agentId: this.runtime.agentId,
                 content: {
-                    text: topicSuggestion.topic,
+                    text: topic,
                     action: "",
                 },
             },
             {
-                suggestedTopic: topicSuggestion.topic,
+                suggestedTopic: topic,
                 agentName: this.runtime.character.name,
                 bio: this.runtime.character.bio,
                 lore: this.runtime.character.lore,
                 stylePost: this.runtime.character.style.post,
-                characterPostExamples: this.runtime.character.postExamples,
-                timelineContext:
-                    topicSuggestion.contextualInfo.timelineContext || "",
+                characterPostExamples: this.runtime.character.postExamples
             }
         );
 
