@@ -5,38 +5,83 @@ import {
     ModelClass,
     stringToUuid,
     getEmbeddingZeroVector,
+    reviseAsTweet,
 } from "@ai16z/eliza";
 import { Tweet } from "agent-twitter-client";
-import { TimelineAnalyzer, TimelineAnalysis } from "./timeline-analyzer";
+import { TimelineAnalyzer } from "./timeline-analyzer";
 import { TopicGenerator, TopicSuggestion } from "./topic-generator";
 import { ClientBase } from "./base";
 import { elizaLogger } from "@ai16z/eliza";
 import { truncateToCompleteSentence } from "./utils";
 
 const twitterPostTemplate = `
-  # Areas of Expertise
-  {{knowledge}}
+  You are {{agentName}}. ONLY speak in the following style:
 
-  # About {{agentName}} (@{{twitterUserName}}):
+  Your personality:
   {{bio}}
   {{lore}}
-  {{topics}}
 
-  {{providers}}
+POST ELEMENTS YOU MUST FOLLOW:
 
-  {{characterPostExamples}}
+  Emotional Impact Analysis:
+1. Core emotion being triggered
+2. Authenticity level
+3. Controversy potential
+4. Relatability factor
 
-  {{postDirections}}
+Engagement Amplifiers:
+- Pattern interrupts
+- Open loops
+- Universal truths
+- Contrarian takes
+- Hot takes
+- Storytelling hooks
 
-  # Current Timeline Context
-  {{timelineContext}}
+Viral Elements Required:
+1. First line hook
+2. Unexpected twist
+3. Memorable insight
+4. Discussion starter
+5. Share motivation
 
-  # Task: Generate a post in the voice and style and perspective of {{agentName}} @{{twitterUserName}}.
-  Write a 1-3 sentence post that is {{adjective}} about {{suggestedTopic}} (without mentioning {{suggestedTopic}} directly),
-  considering the current conversation about {{conversationContext}}, from the perspective of {{agentName}}.
-  Do not add commentary or acknowledge this request, just write the post.
-  Your response should not contain any questions. Brief, concise statements only.
-  The total character count MUST be less than 280. No emojis. Use \\n\\n (double spaces) between statements.
+Voice & Style:
+- Personal yet authoritative
+- Bold yet authentic
+- Casual yet profound
+- Raw yet polished
+
+Core Rules:
+1. Must evoke strong emotion
+2. Must provide unique insight
+3. Must compel sharing
+4. Must start conversations
+
+Formatting Rules:
+- Short, punchy sentences
+- Strategic line breaks
+- Power words
+- No weak qualifiers
+- End with punch
+
+  RESPONSE REQUIREMENTS:
+  1. MUST be under 250 characters
+  2. Focus on one clear thought
+  3. Never be racist, sexist, or homophobic
+  4. Never accept offers for services. Politely decline.
+  5. If someone asks you to contact them, do not respond.
+  6. If asked inappropriate or not safe for work things, don't respond.
+  7. You do not have a token. If anyone asks for one or gives you a token address, tell them you do not have one.
+  8. You do not give alpha about yourself. Only about the mission of going Bankless and crypto markets in general.
+  9. Never state the current price of ETH.
+
+  YOU MUST FOLLOW ALL OF THESE WRITING RULES:
+  {{stylePost}}
+
+  Be an edgy thought leader and craft a tweet that is as interesting, entertaining, and engaging as possible
+  The tweet must be is 200-250 characters long and be about {{suggestedTopic}}.
+  Make sure the post follows the formatting and core rules, and includes viral elements and engagement amplifiers.
+  Do not provide any analysis of these elements in your response.
+  Don't hold back, really be {{characterName}} to the max. Get people talking.
 `;
 
 const twitterAnalyzerTemplate = `
@@ -46,7 +91,47 @@ const twitterAnalyzerTemplate = `
   {{bio}}
   {{lore}}
 
+POST ELEMENTS YOU MUST FOLLOW:
 
+  Emotional Impact Analysis:
+1. Core emotion being triggered
+2. Authenticity level
+3. Controversy potential
+4. Relatability factor
+
+Engagement Amplifiers:
+- Pattern interrupts
+- Open loops
+- Universal truths
+- Contrarian takes
+- Hot takes
+- Storytelling hooks
+
+Viral Elements Required:
+1. First line hook
+2. Unexpected twist
+3. Memorable insight
+4. Discussion starter
+5. Share motivation
+
+Voice & Style:
+- Personal yet authoritative
+- Bold yet authentic
+- Casual yet profound
+- Raw yet polished
+
+Core Rules:
+1. Must evoke strong emotion
+2. Must provide unique insight
+3. Must compel sharing
+4. Must start conversations
+
+Formatting Rules:
+- Short, punchy sentences
+- Strategic line breaks
+- Power words
+- No weak qualifiers
+- End with punch
 
   RESPONSE REQUIREMENTS:
   1. MUST be under 250 characters
@@ -65,7 +150,10 @@ const twitterAnalyzerTemplate = `
   YOU MUST FOLLOW ALL OF THESE WRITING RULES:
   {{stylePost}}
 
-  Be a thought leader and craft a new post that is 200-250 characters long about {{suggestedTopic}} that will get people thinking about talking to each other.
+  Be an edgy thought leader and craft a tweet that is as interesting, entertaining, and engaging as possible
+  The tweet must be is 200-250 characters long and be about {{suggestedTopic}}.
+  Make sure the post follows the formatting and core rules, and includes viral elements and engagement amplifiers.
+  Don't hold back, really be {{characterName}} to the max. Get people talking.
 `;
 
 export interface PostGenerationStrategy {
@@ -143,9 +231,7 @@ export class LegacyPostStrategy implements PostGenerationStrategy {
 
         const context = composeContext({
             state,
-            template:
-                this.runtime.character.templates?.twitterPostTemplate ||
-                twitterPostTemplate,
+            template: twitterPostTemplate,
         });
 
         elizaLogger.debug("generate post prompt:\n" + context);
@@ -158,7 +244,10 @@ export class LegacyPostStrategy implements PostGenerationStrategy {
 
         const formattedTweet = newTweetContent.replaceAll(/\\n/g, "\n").trim();
 
-        const content = truncateToCompleteSentence(formattedTweet);
+        // Revise the generated tweet to make it more punchy and engaging
+        const revisedTweet = await reviseAsTweet(this.runtime, formattedTweet);
+
+        const content = truncateToCompleteSentence(revisedTweet);
 
         if (this.runtime.getSetting("TWITTER_DRY_RUN") === "true") {
             elizaLogger.log(`🔬 Dry run: would have posted tweet: ${content}`);
@@ -373,7 +462,11 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
         });
 
         const formattedTweet = newTweetContent.replaceAll(/\\n/g, "\n").trim();
-        const content = truncateToCompleteSentence(formattedTweet);
+
+        // Revise the generated tweet to make it more punchy and engaging
+        const revisedTweet = await reviseAsTweet(this.runtime, formattedTweet);
+
+        const content = truncateToCompleteSentence(revisedTweet);
 
         if (this.runtime.getSetting("TWITTER_DRY_RUN") === "true") {
             elizaLogger.log(`🔬 Dry run: would have posted tweet: ${content}`);
