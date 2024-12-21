@@ -249,24 +249,24 @@ export class ClientBase extends EventEmitter {
                 return [];
             }
 
-            const originalTweets = rawTweets.filter(
-                (tweet) =>
-                    // Not a retweet (check both metadata and text)
-                    !tweet.legacy?.retweeted_status_result &&
-                    !tweet.legacy?.full_text?.startsWith("RT @") &&
-                    !tweet.text?.startsWith("RT @") &&
-                    // Not a quote tweet
-                    !tweet.legacy?.is_quote_status &&
-                    // Additional check for retweet_status field
-                    !tweet.legacy?.retweeted_status
-            );
+            // const originalTweets = rawTweets.filter(
+            //     (tweet) =>
+            //         // Not a retweet (check both metadata and text)
+            //         !tweet.legacy?.retweeted_status_result &&
+            //         !tweet.legacy?.full_text?.startsWith("RT @") &&
+            //         !tweet.text?.startsWith("RT @") &&
+            //         // Not a quote tweet
+            //         !tweet.legacy?.is_quote_status &&
+            //         // Additional check for retweet_status field
+            //         !tweet.legacy?.retweeted_status
+            // );
 
-            elizaLogger.debug(
-                `[Client] Filtered ${rawTweets.length - originalTweets.length} retweets/quotes`
-            );
+            // elizaLogger.debug(
+            //     `[Client] Filtered ${rawTweets.length - originalTweets.length} retweets/quotes`
+            // );
 
             // Transform tweets to expected format
-            const tweets = originalTweets.map((tweet) => ({
+            const tweets = rawTweets.map((tweet) => ({
                 id: tweet.rest_id || tweet.id_str || tweet.id,
                 userId: tweet.legacy?.user_id_str || tweet.user_id_str,
                 username:

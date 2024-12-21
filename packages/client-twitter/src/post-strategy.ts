@@ -1,7 +1,7 @@
 import {
     IAgentRuntime,
     composeContext,
-    generateText,
+    generateTextWithRevision,
     ModelClass,
     stringToUuid,
     getEmbeddingZeroVector,
@@ -150,7 +150,7 @@ export class LegacyPostStrategy implements PostGenerationStrategy {
 
         elizaLogger.debug("generate post prompt:\n" + context);
 
-        const newTweetContent = await generateText({
+        const newTweetContent = await generateTextWithRevision({
             runtime: this.runtime,
             context,
             modelClass: ModelClass.SMALL,
@@ -259,7 +259,7 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
 
             // Fetch following timeline
             elizaLogger.log("[Strategy] Fetching following timeline...");
-            const timeline = await this.client.fetchFollowingTimeline(1);
+            const timeline = await this.client.fetchFollowingTimeline(100);
 
             if (!timeline) {
                 throw new Error("Timeline is null or undefined");
@@ -366,7 +366,7 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
 
         elizaLogger.debug("generate post prompt:\n" + context);
 
-        const newTweetContent = await generateText({
+        const newTweetContent = await generateTextWithRevision({
             runtime: this.runtime,
             context,
             modelClass: ModelClass.SMALL,

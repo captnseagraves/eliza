@@ -34,6 +34,7 @@ import {
     SearchResponse,
 } from "./types.ts";
 import { fal } from "@fal-ai/client";
+import { reviseForCharacter } from "./character-revision";
 
 /**
  * Send a message to the model for a text generateText - receive a string back and parse how you'd like
@@ -456,6 +457,21 @@ export async function generateText({
         elizaLogger.error("Error in generateText:", error);
         throw error;
     }
+}
+
+export async function generateTextWithRevision({
+    runtime,
+    context,
+    modelClass,
+    stop,
+}: {
+    runtime: IAgentRuntime;
+    context: string;
+    modelClass: string;
+    stop?: string[];
+}): Promise<string> {
+    const generatedText = await generateText({ runtime, context, modelClass, stop });
+    return await reviseForCharacter(generatedText, runtime);
 }
 
 /**

@@ -856,7 +856,6 @@ Text: ${attachment.text}
                 const messageString = `${post}`;
                 return messageString;
             })
-            .slice(0, 50)
             .join("\n");
 
         const formattedCharacterMessageExamples = this.character.messageExamples
@@ -1042,9 +1041,6 @@ Text: ${attachment.text}
                     ? addHeader(
                           `# Example Posts for ${this.character.name}`,
                           formattedCharacterPostExamples
-                              .split("\n")
-                              .slice(0, 25)
-                              .join("\n")
                       )
                     : "",
             characterMessageExamples:
