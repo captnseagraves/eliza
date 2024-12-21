@@ -62,8 +62,8 @@ Do not provide any analysis of these elements in your response.
 const tweetRevisionTemplate = `As an editor, create a punchy tweet from this message for {{characterName}}'s voice and style:
 
 Instructions:
-1. Select the 2-4 most impactful sentences from the text
-2. Condense and rephrase them into a single powerful tweet
+1. Select the 2-4 most inspiring, viral, and engaging sentences from the original text
+2. Condense and rephrase them into a single powerful coherent tweet
 3. Ensure the tweet maintains the core message while being more engaging
 
 Tweet Requirements:
@@ -72,6 +72,7 @@ Tweet Requirements:
 - Must maintain emotional impact
 - Must encourage engagement
 - Must be under 250 characters
+- Use Strategic line breaks
 - No Emojis
 - No hashtags
 
@@ -110,7 +111,7 @@ export async function reviseForCharacter(
             const revisedText = await generateText({
                 runtime,
                 context,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.MEDIUM,
             });
 
             currentText = revisedText.trim();
@@ -131,17 +132,27 @@ export async function reviseAsTweet(
     runtime: IAgentRuntime,
     originalText: string
 ): Promise<string> {
-    const context = tweetRevisionTemplate
-        .replace("{{characterStyle}}", runtime.character.style.all.join("\n"))
-        .replace("{{originalText}}", originalText);
+    try {
+        const context = tweetRevisionTemplate
+            .replace(
+                "{{characterStyle}}",
+                runtime.character.style.all.join("\n")
+            )
+            .replace("{{originalText}}", originalText)
+            .replace(/{{characterName}}/g, runtime.character.name);
 
-    elizaLogger.log("Revising as tweet with context:", originalText);
+        elizaLogger.log("Revising as tweet with context:", originalText);
 
-    const revisedText = await generateText({
-        runtime,
-        context,
-        modelClass: ModelClass.SMALL,
-    });
+        const revisedText = await generateText({
+            runtime,
+            context,
+            modelClass: ModelClass.MEDIUM,
+        });
 
-    return revisedText.trim();
+        return revisedText.trim();
+    } catch (error) {
+        elizaLogger.error("[Tweet Revision] Error revising tweet:", error);
+        // Return original text if revision fails
+        return originalText;
+    }
 }
