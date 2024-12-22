@@ -47,4 +47,4 @@ tsup.config.bundled_*.mjs
 .turbo
 
 .do
-dinewell-setup.sh
+rsai-setup.sh

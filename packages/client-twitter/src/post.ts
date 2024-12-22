@@ -1,4 +1,4 @@
-import { Tweet } from "agent-twitter-client";
+import { Tweet } from "./types";
 import {
     composeContext,
     generateText,
