@@ -9,7 +9,6 @@ import {
 } from "@ai16z/eliza";
 import { Tweet } from "agent-twitter-client";
 import { TimelineAnalyzer } from "./timeline-analyzer";
-import { TopicGenerator } from "./topic-generator";
 import { ClientBase } from "./base";
 import { elizaLogger } from "@ai16z/eliza";
 import { truncateToCompleteSentence } from "./utils";
@@ -332,15 +331,10 @@ export class LegacyPostStrategy implements PostGenerationStrategy {
 
 export class TimelineAnalysisStrategy extends LegacyPostStrategy {
     private timelineAnalyzer: TimelineAnalyzer;
-    private topicGenerator: TopicGenerator;
 
     constructor(runtime: IAgentRuntime, client: ClientBase) {
         super(runtime, client);
         this.timelineAnalyzer = new TimelineAnalyzer(runtime);
-        this.topicGenerator = new TopicGenerator(
-            this.runtime.character.topics,
-            this.runtime.getSetting("DATA_DIR") || "./data"
-        );
     }
 
     public async generateTweet(): Promise<void> {
@@ -369,11 +363,8 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
             const selectedTopic = await this.timelineAnalyzer.analyzeTimelineForTopic(timeline);
             elizaLogger.log(`[Strategy] Selected topic: ${selectedTopic}`);
 
-            // Create topic suggestion
-            const topicSuggestion = selectedTopic
-
             // Generate and post tweet
-            await this.generateTweetWithTopic(topicSuggestion);
+            await this.generateTweetWithTopic(selectedTopic);
         } catch (error) {
             const errorMessage =
                 error instanceof Error ? error.message : JSON.stringify(error);

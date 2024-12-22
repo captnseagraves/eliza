@@ -139,9 +139,7 @@ export async function sendTweet(
                     previousTweetId
                 )
         );
-        console.log("Raw tweet result:", result);
         const body = await result.json();
-        console.log("Tweet response:", JSON.stringify(body, null, 2));
 
         // if we have a response
         if (body?.data?.create_tweet?.tweet_results?.result) {
@@ -169,10 +167,12 @@ export async function sendTweet(
             console.error("Error sending tweet:", {
                 chunk,
                 response: body,
-                error: body?.errors?.[0] || 'Unknown error',
-                previousTweetId
+                error: body?.errors?.[0] || "Unknown error",
+                previousTweetId,
             });
-            throw new Error(`Failed to send tweet: ${JSON.stringify(body?.errors?.[0] || 'Unknown error')}`);
+            throw new Error(
+                `Failed to send tweet: ${JSON.stringify(body?.errors?.[0] || "Unknown error")}`
+            );
         }
 
         // Wait a bit between tweets to avoid rate limiting issues
@@ -292,13 +292,13 @@ function splitParagraph(paragraph: string, maxLength: number): string[] {
 
 export function truncateToCompleteSentence(text: string): string {
     // Define sentence ending punctuation
-    const sentenceEndings = ['.', '!', '?'];
-    
+    const sentenceEndings = [".", "!", "?"];
+
     // If text is shorter than 280 characters, return as is
     if (text.length <= 280) {
         return text;
     }
-    
+
     // Find the last sentence ending before 280 characters
     let lastIndex = -1;
     for (const ending of sentenceEndings) {
@@ -307,18 +307,18 @@ export function truncateToCompleteSentence(text: string): string {
             lastIndex = index;
         }
     }
-    
+
     // If we found a sentence ending, truncate there
     if (lastIndex !== -1) {
         return text.substring(0, lastIndex + 1).trim();
     }
-    
+
     // If no sentence ending found, truncate at last space before 280
-    const lastSpace = text.lastIndexOf(' ', 280);
+    const lastSpace = text.lastIndexOf(" ", 280);
     if (lastSpace !== -1) {
-        return text.substring(0, lastSpace).trim() + '...';
+        return text.substring(0, lastSpace).trim() + "...";
     }
-    
+
     // If no space found, just truncate at 280 with ellipsis
-    return text.substring(0, 277).trim() + '...';
+    return text.substring(0, 277).trim() + "...";
 }

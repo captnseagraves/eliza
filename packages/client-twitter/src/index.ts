@@ -13,7 +13,7 @@ class TwitterManager {
     constructor(runtime: IAgentRuntime) {
         this.client = new ClientBase(runtime);
         this.post = new TwitterPostClient(this.client, runtime);
-        this.search = new TwitterSearchClient(this.client, runtime);
+        // this.search = new TwitterSearchClient(this.client, runtime);
         this.interaction = new TwitterInteractionClient(this.client, runtime);
     }
 }
@@ -30,7 +30,7 @@ export const TwitterClientInterface: Client = {
 
         await manager.post.start();
 
-        await manager.search.onReady();
+        // await manager.search.onReady();
 
         await manager.interaction.start();
 

@@ -78,8 +78,11 @@ export class TwitterPostClient {
     }
 
     private initializeStrategy(): PostGenerationStrategy {
-        const useTimelineAnalysis = this.runtime.getSetting("TWITTER_USE_TIMELINE_ANALYSIS") === "true";
-        elizaLogger.info(`Initializing Twitter client with ${useTimelineAnalysis ? "Timeline Analysis" : "Legacy"} strategy`);
+        const useTimelineAnalysis =
+            this.runtime.getSetting("TWITTER_USE_TIMELINE_ANALYSIS") === "true";
+        elizaLogger.info(
+            `Initializing Twitter client with ${useTimelineAnalysis ? "Timeline Analysis" : "Legacy"} strategy`
+        );
         return useTimelineAnalysis
             ? new TimelineAnalysisStrategy(this.runtime, this.client)
             : new LegacyPostStrategy(this.runtime, this.client);
@@ -105,9 +108,9 @@ export class TwitterPostClient {
 
             const lastPostTimestamp = lastPost?.timestamp ?? 0;
             const minMinutes =
-                parseInt(this.runtime.getSetting("POST_INTERVAL_MIN")) || 90;
+                parseInt(this.runtime.getSetting("POST_INTERVAL_MIN")) || 180;
             const maxMinutes =
-                parseInt(this.runtime.getSetting("POST_INTERVAL_MAX")) || 180;
+                parseInt(this.runtime.getSetting("POST_INTERVAL_MAX")) || 240;
             const randomMinutes =
                 Math.floor(Math.random() * (maxMinutes - minMinutes + 1)) +
                 minMinutes;
