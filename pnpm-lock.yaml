@@ -689,6 +689,9 @@ importers:
       '@ai16z/eliza':
         specifier: workspace:*
         version: link:../core
+      agent-twitter-client:
+        specifier: workspace:*
+        version: link:../agent-twitter-client
       glob:
         specifier: 11.0.0
         version: 11.0.0

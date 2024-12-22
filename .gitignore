@@ -48,3 +48,4 @@ tsup.config.bundled_*.mjs
 
 .do
 rsai-setup.sh
+rsai-update.sh
