@@ -139,7 +139,9 @@ export async function sendTweet(
                     previousTweetId
                 )
         );
+        console.log("Raw tweet result:", result);
         const body = await result.json();
+        console.log("Tweet response:", JSON.stringify(body, null, 2));
 
         // if we have a response
         if (body?.data?.create_tweet?.tweet_results?.result) {
@@ -164,7 +166,13 @@ export async function sendTweet(
             sentTweets.push(finalTweet);
             previousTweetId = finalTweet.id;
         } else {
-            console.error("Error sending chunk", chunk, "repsonse:", body);
+            console.error("Error sending tweet:", {
+                chunk,
+                response: body,
+                error: body?.errors?.[0] || 'Unknown error',
+                previousTweetId
+            });
+            throw new Error(`Failed to send tweet: ${JSON.stringify(body?.errors?.[0] || 'Unknown error')}`);
         }
 
         // Wait a bit between tweets to avoid rate limiting issues

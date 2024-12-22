@@ -1,4 +1,4 @@
-import { SearchMode } from "agent-twitter-client";
+import { SearchMode, fetchHomeTimeline } from "agent-twitter-client";
 import { composeContext } from "@ai16z/eliza";
 import { generateMessageResponse, generateText } from "@ai16z/eliza";
 import { messageCompletionFooter } from "@ai16z/eliza";
@@ -42,14 +42,14 @@ Your response should not contain any questions. Brief, concise statements only. 
 
 ` + messageCompletionFooter;
 
-export class TwitterSearchClient extends ClientBase {
+export class TwitterSearchClient {
     private respondedTweets: Set<string> = new Set();
+    private client: ClientBase;
+    private runtime: IAgentRuntime;
 
-    constructor(runtime: IAgentRuntime) {
-        // Initialize the client and pass an optional callback to be called when the client is ready
-        super({
-            runtime,
-        });
+    constructor(client: ClientBase, runtime: IAgentRuntime) {
+        this.client = client;
+        this.runtime = runtime;
     }
 
     async onReady() {
@@ -60,7 +60,7 @@ export class TwitterSearchClient extends ClientBase {
         this.engageWithSearchTerms();
         setTimeout(
             () => this.engageWithSearchTermsLoop(),
-            (Math.floor(Math.random() * (120 - 60 + 1)) + 60) * 60 * 1000
+            (Math.floor(Math.random() * (180 - 90 + 1)) + 90) * 60 * 1000
         );
     }
 
@@ -74,20 +74,44 @@ export class TwitterSearchClient extends ClientBase {
             console.log("Fetching search tweets");
             // TODO: we wait 5 seconds here to avoid getting rate limited on startup, but we should queue
             await new Promise((resolve) => setTimeout(resolve, 5000));
-            const recentTweets = await this.fetchSearchTweets(
+            const recentTweets = await this.client.fetchSearchTweets(
                 searchTerm,
                 20,
                 SearchMode.Top
             );
             console.log("Search tweets fetched");
 
-            const homeTimeline = await this.fetchHomeTimeline(100);
+            const homeTimeline = await this.client.twitterClient.fetchHomeTimeline(100, []);
 
-            await this.cacheTimeline(homeTimeline);
+            // For each tweet in the timeline, fetch its thread if it's a reply
+            const homeTimelineWithThreads = await Promise.all(
+                homeTimeline.map(async (tweet) => {
+                    if (tweet.inReplyToStatusId) {
+                        try {
+                            const parentTweet = await this.client.twitterClient.getTweet(tweet.inReplyToStatusId);
+                            if (parentTweet) {
+                                tweet.thread = [parentTweet];
+                                // If parent is also a reply, get its parent
+                                if (parentTweet.inReplyToStatusId) {
+                                    const grandparentTweet = await this.client.twitterClient.getTweet(parentTweet.inReplyToStatusId);
+                                    if (grandparentTweet) {
+                                        tweet.thread.unshift(grandparentTweet);
+                                    }
+                                }
+                            }
+                        } catch (error) {
+                            console.error("Error fetching thread for tweet:", error);
+                        }
+                    }
+                    return tweet;
+                })
+            );
+
+            await this.client.cacheTimeline(homeTimelineWithThreads);
 
             const formattedHomeTimeline =
                 `# ${this.runtime.character.name}'s Home Timeline\n\n` +
-                homeTimeline
+                homeTimelineWithThreads
                     .map((tweet) => {
                         return `ID: ${tweet.id}\nFrom: ${tweet.name} (@${tweet.username})${tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""}\nText: ${tweet.text}\n---\n`;
                     })
@@ -109,36 +133,40 @@ export class TwitterSearchClient extends ClientBase {
             const prompt = `
   Here are some tweets related to the search term "${searchTerm}":
 
-  ${[...slicedTweets, ...homeTimeline]
+  ${(await Promise.all([...slicedTweets, ...homeTimelineWithThreads]
       .filter((tweet) => {
-          // ignore tweets where any of the thread tweets contain a tweet by the bot
-          const thread = tweet.thread;
-          const botTweet = thread.find(
-              (t) => t.username === this.runtime.getSetting("TWITTER_USERNAME")
-          );
-          return !botTweet;
+          // Filter out tweets where the bot is in the thread
+          const botUsername = this.runtime.getSetting("TWITTER_USERNAME");
+          const tweetHasBotInThread = tweet.thread?.some(t => t.username === botUsername);
+          return tweet.username !== botUsername && !tweetHasBotInThread;
       })
       .map(
-          (tweet) => `
+          async (tweet) => {
+              let imageDescription = '';
+              if (tweet.photos && tweet.photos.length > 0) {
+                  // Use alt_text if available, otherwise skip image description
+                  imageDescription = tweet.photos.map(photo => photo.alt_text || '').filter(Boolean).join('\n');
+              }
+              return `
     ID: ${tweet.id}${tweet.inReplyToStatusId ? ` In reply to: ${tweet.inReplyToStatusId}` : ""}
     From: ${tweet.name} (@${tweet.username})
-    Text: ${tweet.text}
-  `
-      )
-      .join("\n")}
+    Text: ${tweet.text}${imageDescription ? `\n    Image Description: ${imageDescription}` : ''}
+  `;
+          }
+      ))).join("\n")}
 
-  Which tweet is the most interesting and relevant for Ruby to reply to? Please provide only the ID of the tweet in your response.
+  Which tweet is the most interesting and relevant for RSAi to reply to? Please provide only the ID of the tweet in your response.
   Notes:
     - Respond to English tweets only
     - Respond to tweets that don't have a lot of hashtags, links, URLs or images
-    - Respond to tweets that are not retweets
+    - Respond to tweets that are not retweets or quote tweets
     - Respond to tweets where there is an easy exchange of ideas to have with the user
     - ONLY respond with the ID of the tweet`;
 
             const mostInterestingTweetResponse = await generateText({
                 runtime: this.runtime,
                 context: prompt,
-                modelClass: ModelClass.SMALL,
+                modelClass: ModelClass.MEDIUM,
             });
 
             const tweetId = mostInterestingTweetResponse.trim();
@@ -179,7 +207,7 @@ export class TwitterSearchClient extends ClientBase {
             );
 
             // crawl additional conversation tweets, if there are any
-            await buildConversationThread(selectedTweet, this);
+            await buildConversationThread(selectedTweet, this.client);
 
             const message = {
                 id: stringToUuid(selectedTweet.id + "-" + this.runtime.agentId),
@@ -218,8 +246,8 @@ export class TwitterSearchClient extends ClientBase {
 
             let tweetBackground = "";
             if (selectedTweet.isRetweet) {
-                const originalTweet = await this.requestQueue.add(() =>
-                    this.twitterClient.getTweet(selectedTweet.id)
+                const originalTweet = await this.client.requestQueue.add(() =>
+                    this.client.twitterClient.getTweet(selectedTweet.id)
                 );
                 tweetBackground = `Retweeting @${originalTweet.username}: ${originalTweet.text}`;
             }
@@ -237,7 +265,7 @@ export class TwitterSearchClient extends ClientBase {
             }
 
             let state = await this.runtime.composeState(message, {
-                twitterClient: this.twitterClient,
+                twitterClient: this.client.twitterClient,
                 twitterUserName: this.runtime.getSetting("TWITTER_USERNAME"),
                 timeline: formattedHomeTimeline,
                 tweetContext: `${tweetBackground}
@@ -250,7 +278,7 @@ export class TwitterSearchClient extends ClientBase {
   `,
             });
 
-            await this.saveRequestMessage(message, state as State);
+            await this.client.saveRequestMessage(message, state as State);
 
             const context = composeContext({
                 state,
@@ -280,7 +308,7 @@ export class TwitterSearchClient extends ClientBase {
             try {
                 const callback: HandlerCallback = async (response: Content) => {
                     const memories = await sendTweet(
-                        this,
+                        this.client,
                         response,
                         message.roomId,
                         this.runtime.getSetting("TWITTER_USERNAME"),
