@@ -5,9 +5,9 @@
 </div>
 
 <div align="center">
-  
-  📖 [Documentation](https://ai16z.github.io/eliza/) | 🎯 [Examples](https://github.com/thejoven/awesome-eliza)
-  
+
+📖 [Documentation](https://ai16z.github.io/eliza/) | 🎯 [Examples](https://github.com/thejoven/awesome-eliza)
+
 </div>
 
 ## 🌍 README Translations
@@ -16,30 +16,30 @@
 
 ## ✨ Features
 
--   🛠️ Full-featured Discord, Twitter and Telegram connectors
--   🔗 Support for every model (Llama, Grok, OpenAI, Anthropic, etc.)
--   👥 Multi-agent and room support
--   📚 Easily ingest and interact with your documents
--   💾 Retrievable memory and document store
--   🚀 Highly extensible - create your own actions and clients
--   ☁️ Supports many models (local Llama, OpenAI, Anthropic, Groq, etc.)
--   📦 Just works!
+- 🛠️ Full-featured Discord, Twitter and Telegram connectors
+- 🔗 Support for every model (Llama, Grok, OpenAI, Anthropic, etc.)
+- 👥 Multi-agent and room support
+- 📚 Easily ingest and interact with your documents
+- 💾 Retrievable memory and document store
+- 🚀 Highly extensible - create your own actions and clients
+- ☁️ Supports many models (local Llama, OpenAI, Anthropic, Groq, etc.)
+- 📦 Just works!
 
 ## 🎯 Use Cases
 
--   🤖 Chatbots
--   🕵️ Autonomous Agents
--   📈 Business Process Handling
--   🎮 Video Game NPCs
--   🧠 Trading
+- 🤖 Chatbots
+- 🕵️ Autonomous Agents
+- 📈 Business Process Handling
+- 🎮 Video Game NPCs
+- 🧠 Trading
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
--   [Python 2.7+](https://www.python.org/downloads/)
--   [Node.js 23+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
--   [pnpm](https://pnpm.io/installation)
+- [Python 2.7+](https://www.python.org/downloads/)
+- [Node.js 23+](https://docs.npmjs.com/downloading-and-installing-node-js-and-npm)
+- [pnpm](https://pnpm.io/installation)
 
 > **Note for Windows Users:** [WSL 2](https://learn.microsoft.com/en-us/windows/wsl/install-manual) is required.
 
@@ -119,8 +119,8 @@ pnpm install --include=optional sharp
 
 ### Community & contact
 
--   [GitHub Issues](https://github.com/ai16z/eliza/issues). Best for: bugs you encounter using Eliza, and feature proposals.
--   [Discord](https://discord.gg/ai16z). Best for: sharing your applications and hanging out with the community.
+- [GitHub Issues](https://github.com/ai16z/eliza/issues). Best for: bugs you encounter using Eliza, and feature proposals.
+- [Discord](https://discord.gg/ai16z). Best for: sharing your applications and hanging out with the community.
 
 ## Contributors
 
@@ -131,3 +131,111 @@ pnpm install --include=optional sharp
 ## Star History
 
 [![Star History Chart](https://api.star-history.com/svg?repos=ai16z/eliza&type=Date)](https://star-history.com/#ai16z/eliza&Date)
+
+## 🚀 Deployment to DigitalOcean
+
+Follow these steps to deploy Eliza on a DigitalOcean droplet:
+
+### 1. Create a New Droplet
+
+- Log in to DigitalOcean dashboard
+- Click "Create" > "Droplets"
+- Choose Ubuntu as the operating system
+- Select Basic plan
+- Choose the `basic-xxs` size (cheapest option)
+- Choose a datacenter region (any is fine)
+- Create a root password or SSH key
+- Click "Create Droplet"
+
+### 2. Access the Droplet
+
+```bash
+ssh root@YOUR_DROPLET_IP
+```
+
+### 3. Upload Setup Script
+
+```bash
+# Create the setup script
+nano dinewell-setup.sh
+
+# Make the script executable
+chmod +x dinewell-setup.sh
+```
+
+### 4. Run Setup Script
+
+```bash
+./dinewell-setup.sh
+```
+
+This will:
+
+- Install all necessary dependencies (Node.js, pnpm, Git, PM2)
+- Clone the repository
+- Set up environment variables
+- Build the project
+- Configure PM2 for process management
+
+### 5. Verify Installation
+
+```bash
+# Check process status
+pm2 status
+
+# Check logs
+pm2 logs dinewell
+
+# Monitor the application
+pm2 monit
+```
+
+### 6. Setup Domain (Optional)
+
+- In DigitalOcean dashboard, go to "Networking"
+- Add your domain and create an A record pointing to your droplet's IP
+
+### 7. Maintenance Commands
+
+```bash
+# Restart the application
+pm2 restart dinewell
+
+# View real-time monitoring
+pm2 monit
+
+# Update system packages
+sudo apt update && sudo apt upgrade
+```
+
+### 8. Updating the Application
+
+```bash
+# Stop the current process
+pm2 stop dinewell
+
+# Navigate to app directory
+cd ~/app
+
+# Pull the latest changes
+git pull origin v0.1.5
+
+# Install any new dependencies
+pnpm install
+
+# Rebuild the application
+pnpm run build
+
+# Restart the process
+pm2 restart dinewell
+
+# Check the logs to ensure successful restart
+pm2 logs dinewell
+```
+
+Remember to:
+
+- Keep your environment variables secure
+- Regularly update the system
+- Monitor the application's performance and logs
+- Backup your data regularly
