@@ -1,8 +1,9 @@
 import { IAgentRuntime, elizaLogger } from "./index.js";
 import { generateText } from "./generation.js";
 import { ModelClass } from "./types.js";
+import { messageCompletionFooter } from "./parsing";
 
-const revisionTemplate = `As an editor, review this message for {{characterName}}'s voice and style:
+const longFormRevisionTemplate = `As an editor, review this message for {{characterName}}'s voice and style:
 
 Engagement Amplifiers:
 - Pattern interrupts
@@ -84,6 +85,26 @@ Original text:
 
 Provide only the final tweet, no explanations or analysis.`;
 
+const messageRevisionTemplate =
+    `As an editor, review and improve this message for {{characterName}}'s voice and style:
+
+Core Requirements:
+1. Must maintain core message
+2. Must be clear and engaging
+3. Must match character voice
+4. Must be concise
+
+Character Style Guidelines:
+{{characterStyle}}
+
+Original text:
+{{originalText}}
+
+Rewrite to match {{characterName}}'s style while keeping the core message intact.
+Focus on being brief, conversational, and entertaining.
+Provide only the revised message, no explanations.
+Include an action, if appropriate. {{actionNames}}` + messageCompletionFooter;
+
 export async function reviseForCharacter(
     originalText: string,
     runtime: IAgentRuntime
@@ -96,7 +117,7 @@ export async function reviseForCharacter(
                 `[Character Revision] Pass ${i} - Original text: "${currentText}"`
             );
 
-            const context = revisionTemplate
+            const context = longFormRevisionTemplate
                 .replace(
                     "{{characterStyle}}",
                     runtime.character.style.all.join("\n")
@@ -153,6 +174,34 @@ export async function reviseAsTweet(
     } catch (error) {
         elizaLogger.error("[Tweet Revision] Error revising tweet:", error);
         // Return original text if revision fails
+        return originalText;
+    }
+}
+
+export async function reviseMessage(
+    runtime: IAgentRuntime,
+    originalText: string
+): Promise<string> {
+    try {
+        const context = messageRevisionTemplate
+            .replace(
+                "{{characterStyle}}",
+                runtime.character.style.all.join("\n")
+            )
+            .replace("{{originalText}}", originalText)
+            .replace(/{{characterName}}/g, runtime.character.name);
+
+        elizaLogger.log("[General Revision] Revising text:", originalText);
+
+        const revisedText = await generateText({
+            runtime,
+            context,
+            modelClass: ModelClass.MEDIUM,
+        });
+
+        return revisedText.trim();
+    } catch (error) {
+        elizaLogger.error("[General Revision] Error revising text:", error);
         return originalText;
     }
 }

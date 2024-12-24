@@ -34,7 +34,7 @@ import {
     SearchResponse,
 } from "./types.ts";
 import { fal } from "@fal-ai/client";
-import { reviseForCharacter } from "./character-revision";
+import { reviseForCharacter, reviseMessage } from "./character-revision";
 
 /**
  * Send a message to the model for a text generateText - receive a string back and parse how you'd like
@@ -470,7 +470,12 @@ export async function generateTextWithRevision({
     modelClass: string;
     stop?: string[];
 }): Promise<string> {
-    const generatedText = await generateText({ runtime, context, modelClass, stop });
+    const generatedText = await generateText({
+        runtime,
+        context,
+        modelClass,
+        stop,
+    });
     return await reviseForCharacter(generatedText, runtime);
 }
 
@@ -807,6 +812,20 @@ export async function generateMessageResponse({
                 context,
                 modelClass,
             });
+
+            elizaLogger.log(
+                "[Message Generation] Original response:",
+                response
+            );
+
+            // Revise the response using reviseMessage
+            // const revisedResponse = await reviseMessage(runtime, response);
+
+            // elizaLogger.log(
+            //     "[Message Generation] Revised response:",
+            //     revisedResponse
+            // );
+
             // try parsing the response as JSON, if null then try again
             const parsedContent = parseJSONObjectFromText(response) as Content;
             if (!parsedContent) {
