@@ -1,31 +1,81 @@
-// In your router configuration file (e.g., App.jsx or router.jsx)
 import { createBrowserRouter } from "react-router-dom";
-import Agents from "./Agents";
-import Agent from "./Agent"; // We'll create this component
 import Layout from "./Layout";
-import Chat from "./Chat";
-import Character from "./Character";
+import EventsPage from "./features/events/pages/EventsPage";
+import EventFormPage from "./features/events/pages/EventFormPage";
+import EventDetailsPage from "./features/events/pages/EventDetailsPage";
+import RSVPPage from "./features/events/pages/RSVPPage";
+import LoginPage from "./features/auth/pages/LoginPage";
+import Agents from "./features/agents/Agents";
+import Agent from "./features/agents/Agent";
+import Chat from "./features/agents/Chat";
+import Character from "./features/agents/Character";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 export const router = createBrowserRouter([
     {
+        path: "/login",
+        element: <LoginPage />,
+    },
+    {
+        path: "/rsvp/:inviteId",
+        element: <RSVPPage />,
+    },
+    // AI Agent routes
+    {
         path: "/",
-        element: <Agents />,
+        element: (
+            <ProtectedRoute>
+                <Agents />
+            </ProtectedRoute>
+        ),
     },
     {
         path: "/:agentId",
-        element: <Layout />,
+        element: (
+            <ProtectedRoute>
+                <Layout />
+            </ProtectedRoute>
+        ),
         children: [
             {
-                path: "", // This matches /:agentId exactly
+                path: "",
                 element: <Agent />,
             },
             {
-                path: "chat", // This matches /:agentId/chat
+                path: "chat",
                 element: <Chat />,
             },
             {
-                path: "character", // This matches /:agentId/chat
+                path: "character",
                 element: <Character />,
+            },
+        ],
+    },
+
+    // Event Management routes
+    {
+        path: "/events",
+        element: (
+            <ProtectedRoute>
+                <Layout />
+            </ProtectedRoute>
+        ),
+        children: [
+            {
+                path: "",
+                element: <EventsPage />,
+            },
+            {
+                path: "new",
+                element: <EventFormPage />,
+            },
+            {
+                path: ":id",
+                element: <EventDetailsPage />,
+            },
+            {
+                path: ":id/edit",
+                element: <EventFormPage />,
             },
         ],
     },

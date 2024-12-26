@@ -1,0 +1,83 @@
+// This is your Prisma schema file
+datasource db {
+  provider = "postgresql"
+  url      = "postgresql://kevinseagraves@localhost:5432/dinewell_dev_events?schema=public"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String      @id @default(uuid())
+  phoneNumber    String      @unique
+  verified       Boolean     @default(false)
+  createdAt      DateTime    @default(now())
+  lastLogin      DateTime?
+  invitedEvents  String[]    // Array of event IDs
+  acceptedEvents String[]    // Array of event IDs
+  
+  // Relations
+  createdEvents  Event[]     @relation("CreatedEvents")
+  userEvents     UserEvent[]
+  invitations    Invitation[]
+  eventChats     EventChat[]
+}
+
+model Event {
+  id          String      @id @default(uuid())
+  title       String
+  description String
+  dateTime    DateTime
+  location    String
+  imageUrl    String?
+  creatorId   String
+  createdAt   DateTime    @default(now())
+  status      String      @default("active")
+
+  // Relations
+  creator     User        @relation("CreatedEvents", fields: [creatorId], references: [id])
+  userEvents  UserEvent[]
+  invitations Invitation[]
+  eventChats  EventChat[]
+}
+
+model Invitation {
+  id           String   @id @default(uuid())
+  eventId      String
+  userId       String
+  phoneNumber  String
+  customMessage String?
+  status       String   @default("pending")
+  createdAt    DateTime @default(now())
+  inviteLinkId String   @unique
+
+  // Relations
+  event        Event    @relation(fields: [eventId], references: [id])
+  user         User     @relation(fields: [userId], references: [id])
+}
+
+model UserEvent {
+  id        String   @id @default(uuid())
+  userId    String
+  eventId   String
+  status    String
+  rsvpDate  DateTime @default(now())
+  createdAt DateTime @default(now())
+
+  // Relations
+  user      User     @relation(fields: [userId], references: [id])
+  event     Event    @relation(fields: [eventId], references: [id])
+}
+
+model EventChat {
+  id        String   @id @default(uuid())
+  eventId   String
+  userId    String
+  message   String
+  timestamp DateTime @default(now())
+
+  // Relations
+  event     Event    @relation(fields: [eventId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
+}

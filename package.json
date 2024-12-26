@@ -2,7 +2,8 @@
     "name": "eliza",
     "scripts": {
         "preinstall": "npx only-allow pnpm",
-        "build": "turbo run build",
+        "build": "turbo run build --filter=!eliza-client",
+        "build:all": "turbo run build",
         "start": "pnpm --filter \"@ai16z/agent\" start --isRoot",
         "start:client": "cross-env VITE_DEFAULT_CHARACTER=$npm_config_characters pnpm --dir client dev",
         "start:all": "concurrently \"pnpm start\" \"pnpm start:client\"",

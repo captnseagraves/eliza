@@ -58,7 +58,14 @@ export function parseArguments(): {
     characters?: string;
 } {
     try {
-        return yargs(process.argv.slice(3))
+        // Find the actual arguments after any pnpm/npm specific args
+        const args = process.argv.slice(2).filter(arg => 
+            arg.includes('character') || 
+            arg.startsWith('--') || 
+            arg.startsWith('-')
+        );
+        
+        return yargs(args)
             .option("character", {
                 type: "string",
                 description: "Path to the character JSON file",
