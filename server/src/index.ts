@@ -4,6 +4,7 @@ import { PrismaClient } from '@prisma/client';
 import authRoutes from './routes/auth.routes';
 import eventRoutes from './routes/event.routes';
 import invitationRoutes from './routes/invitation.routes';
+import agentRoutes from './routes/agent.routes';
 import { env } from './config/env';
 
 // Create Express server
@@ -29,9 +30,10 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/events', eventRoutes);
-app.use('/api/invitations', invitationRoutes);
+app.use('/auth', authRoutes);
+app.use('/events', eventRoutes);
+app.use('/invitations', invitationRoutes);
+app.use('/agents', agentRoutes);
 
 // Basic health check route
 app.get('/health', (req, res) => {
@@ -45,6 +47,9 @@ app.use((err: Error, req: express.Request, res: express.Response, next: express.
 });
 
 // Start server
-app.listen(env.PORT, () => {
-  console.log(`Server is running on port ${env.PORT}`);
+const port = process.env.PORT || 3001;
+app.listen(port, () => {
+  console.log(`Server is running on port ${port}`);
 });
+
+export default app;

@@ -28,10 +28,9 @@ export const authenticateToken = async (
       return res.status(401).json({ error: 'User not found' });
     }
 
-    req.user = {
-      id: user.id,
-      phoneNumber: user.phoneNumber
-    };
+    req.user = user;
+    req.userId = user.id;
+    req.token = token;
     
     next();
   } catch (error) {
@@ -39,8 +38,8 @@ export const authenticateToken = async (
   }
 };
 
-export const generateToken = (payload: JWTPayload): string => {
-  return jwt.sign(payload, authConfig.jwt.secret, {
+export const generateToken = (userId: string): string => {
+  return jwt.sign({ userId }, authConfig.jwt.secret, {
     expiresIn: authConfig.jwt.expiresIn,
   });
 };

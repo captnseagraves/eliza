@@ -2,6 +2,12 @@ import prisma from '../config/database';
 import { User } from '@prisma/client';
 
 export class UserService {
+  static async findById(userId: string): Promise<User | null> {
+    return prisma.user.findUnique({
+      where: { id: userId },
+    });
+  }
+
   static async getUserProfile(userId: string): Promise<User | null> {
     return prisma.user.findUnique({
       where: { id: userId },
@@ -29,7 +35,9 @@ export class UserService {
   static async updateLastLogin(userId: string): Promise<void> {
     await prisma.user.update({
       where: { id: userId },
-      data: { lastLogin: new Date() },
+      data: {
+        lastLogin: new Date(),
+      },
     });
   }
 }
