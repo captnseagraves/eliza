@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import "@/App.css";
+import "./App.css";
 
 type Agent = {
     id: string;
@@ -13,10 +13,7 @@ function Agents() {
     const { data: agents, isLoading } = useQuery({
         queryKey: ["agents"],
         queryFn: async () => {
-            const res = await fetch("/agents");
-            if (!res.ok) {
-                throw new Error('Failed to fetch agents');
-            }
+            const res = await fetch("/api/agents");
             const data = await res.json();
             return data.agents as Agent[];
         },
@@ -33,8 +30,10 @@ function Agents() {
                     {agents?.map((agent) => (
                         <Button
                             key={agent.id}
-                            className="w-full"
-                            onClick={() => navigate(`/agents/${agent.id}`)}
+                            className="w-full text-lg py-6"
+                            onClick={() => {
+                                navigate(`/${agent.id}`);
+                            }}
                         >
                             {agent.name}
                         </Button>

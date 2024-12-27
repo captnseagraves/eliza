@@ -758,23 +758,8 @@ const SidebarMenuSubButton = React.forwardRef<
 });
 SidebarMenuSubButton.displayName = "SidebarMenuSubButton";
 
-const SidebarSection = React.forwardRef<
-    HTMLDivElement,
-    React.ComponentProps<"div">
->(({ className, ...props }, ref) => (
-    <div
-        ref={ref}
-        className={cn("flex flex-col gap-4 px-4 py-2", className)}
-        {...props}
-    />
-));
-SidebarSection.displayName = "SidebarSection";
-
 export {
     Sidebar,
-    SidebarSection,
-    SidebarProvider,
-    useSidebar,
     SidebarContent,
     SidebarFooter,
     SidebarGroup,
@@ -793,7 +778,9 @@ export {
     SidebarMenuSub,
     SidebarMenuSubButton,
     SidebarMenuSubItem,
+    SidebarProvider,
     SidebarRail,
     SidebarSeparator,
     SidebarTrigger,
+    useSidebar,
 };

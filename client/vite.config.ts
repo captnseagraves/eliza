@@ -30,23 +30,6 @@ export default defineConfig({
                 changeOrigin: true,
                 rewrite: (path) => path.replace(/^\/api/, ""),
             },
-            "/agents": {
-                target: "http://localhost:8080",
-                changeOrigin: true,
-                ws: true,
-            },
-            "/events": {
-                target: "http://localhost:3001",
-                changeOrigin: true,
-            },
-            "/invitations": {
-                target: "http://localhost:3001",
-                changeOrigin: true,
-            },
-            "/auth": {
-                target: "http://localhost:3001",
-                changeOrigin: true,
-            },
         },
     },
 });
