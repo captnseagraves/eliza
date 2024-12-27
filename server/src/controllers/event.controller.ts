@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { EventService, EventFilters } from '../services/event.service';
 import { AuthRequest } from '../types/auth';
+import { CreateEventInput, Location } from '../types/event';
 
 export class EventController {
   static async createEvent(req: AuthRequest, res: Response) {
@@ -15,6 +16,11 @@ export class EventController {
       // Validate required fields
       if (!title || !description || !dateTime || !location) {
         return res.status(400).json({ error: 'Missing required fields' });
+      }
+
+      // Validate location object
+      if (!location.address || typeof location.lat !== 'number' || typeof location.lng !== 'number') {
+        return res.status(400).json({ error: 'Invalid location format' });
       }
 
       const event = await EventService.createEvent({
@@ -53,28 +59,42 @@ export class EventController {
 
   static async updateEvent(req: AuthRequest, res: Response) {
     try {
+      const { id } = req.params;
       const userId = req.user?.id;
+      const { title, description, dateTime, location, imageUrl, status } = req.body;
+
       if (!userId) {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const { id } = req.params;
-      const updateData = req.body;
-
-      // Validate at least one field is being updated
-      if (Object.keys(updateData).length === 0) {
-        return res.status(400).json({ error: 'No update data provided' });
+      // Check if user is the creator of the event
+      const existingEvent = await EventService.getEvent(id);
+      if (!existingEvent) {
+        return res.status(404).json({ error: 'Event not found' });
       }
 
-      const event = await EventService.updateEvent(id, userId, updateData);
-      res.json(event);
+      if (existingEvent.creatorId !== userId) {
+        return res.status(403).json({ error: 'Not authorized to update this event' });
+      }
+
+      // Validate location object if provided
+      if (location && (!location.address || typeof location.lat !== 'number' || typeof location.lng !== 'number')) {
+        return res.status(400).json({ error: 'Invalid location format' });
+      }
+
+      const updatedEvent = await EventService.updateEvent(id, {
+        title,
+        description,
+        dateTime: dateTime ? new Date(dateTime) : undefined,
+        location,
+        imageUrl,
+        status,
+      });
+
+      res.json(updatedEvent);
     } catch (error) {
-      if (error instanceof Error && error.message === 'Event not found or user not authorized') {
-        res.status(403).json({ error: error.message });
-      } else {
-        console.error('Error updating event:', error);
-        res.status(500).json({ error: 'Failed to update event' });
-      }
+      console.error('Error updating event:', error);
+      res.status(500).json({ error: 'Failed to update event' });
     }
   }
 
@@ -105,27 +125,11 @@ export class EventController {
         return res.status(401).json({ error: 'Not authenticated' });
       }
 
-      const filters: EventFilters = {};
-
-      // Parse query parameters
-      if (req.query.search) {
-        filters.search = req.query.search as string;
-      }
-      if (req.query.startDate) {
-        filters.startDate = new Date(req.query.startDate as string);
-      }
-      if (req.query.endDate) {
-        filters.endDate = new Date(req.query.endDate as string);
-      }
-      if (req.query.status) {
-        filters.status = req.query.status as string;
-      }
-      if (req.query.createdByMe === 'true') {
-        filters.createdByMe = true;
-      }
-      if (req.query.attending === 'true') {
-        filters.attending = true;
-      }
+      const filters: EventFilters = {
+        status: req.query.status as string,
+        dateFrom: req.query.dateFrom ? new Date(req.query.dateFrom as string) : undefined,
+        dateTo: req.query.dateTo ? new Date(req.query.dateTo as string) : undefined,
+      };
 
       const events = await EventService.listEvents(userId, filters);
       res.json(events);

@@ -17,7 +17,7 @@ export function EventCard({ event, onView }: EventCardProps) {
       </CardHeader>
       <CardContent>
         <p className="text-sm text-muted-foreground mb-4">{event.description}</p>
-        <p className="text-sm mb-4">📍 {event.location}</p>
+        <p className="text-sm mb-4">📍 {event.location.address}</p>
         <Button onClick={() => onView(event.id)} variant="outline" className="w-full">
           View Details
         </Button>

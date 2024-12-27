@@ -129,7 +129,7 @@ export default function EventDetailsPage() {
               </div>
               <div>
                 <h3 className="font-medium">Location</h3>
-                <p className="text-muted-foreground">{event.location}</p>
+                <p className="text-muted-foreground">{event.location.address}</p>
               </div>
               <div>
                 <h3 className="font-medium">Date and Time</h3>
