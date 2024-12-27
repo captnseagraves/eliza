@@ -3,7 +3,7 @@ import { useParams } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import "@/App.css";
+import "./App.css";
 
 type TextResponse = {
     text: string;
@@ -65,7 +65,7 @@ export default function Chat() {
                                 }`}
                             >
                                 <div
-                                    className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
+                                    className={`max-w-[80%] rounded-lg px-4 py-2 ${
                                         message.user === "user"
                                             ? "bg-primary text-primary-foreground"
                                             : "bg-muted"
