@@ -1,9 +1,15 @@
+export interface Location {
+  address: string;
+  lat: number;
+  lng: number;
+}
+
 export interface Event {
   id: string;
   title: string;
   description: string;
   dateTime: string;
-  location: string;
+  location: Location;
   imageUrl?: string;
   creatorId: string;
   createdAt: string;
@@ -14,7 +20,7 @@ export interface CreateEventInput {
   title: string;
   description: string;
   dateTime: string;
-  location: string;
+  location: Location;
   imageUrl?: string;
 }
 

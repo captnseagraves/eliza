@@ -10,11 +10,16 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Event } from "@/types/event";
+import { LocationPicker } from "@/components/ui/location-picker";
 
 const eventSchema = z.object({
   title: z.string().min(1, "Title is required"),
   description: z.string().min(1, "Description is required"),
-  location: z.string().min(1, "Location is required"),
+  location: z.object({
+    address: z.string().min(1, "Location is required"),
+    lat: z.number(),
+    lng: z.number(),
+  }),
   dateTime: z.date(),
 });
 
@@ -42,6 +47,11 @@ export function EventForm({ onSubmit, initialData, isLoading }: EventFormProps) 
         }
       : {
           dateTime: new Date(),
+          location: {
+            address: "",
+            lat: 0,
+            lng: 0,
+          },
         },
   });
 
@@ -80,17 +90,15 @@ export function EventForm({ onSubmit, initialData, isLoading }: EventFormProps) 
       </div>
 
       <div className="space-y-2">
-        <label htmlFor="location" className="text-sm font-medium">
-          Location
-        </label>
-        <Input
-          id="location"
-          {...register("location")}
-          placeholder="Event location"
-          className={cn(errors.location && "border-red-500")}
+        <label className="text-sm font-medium">Location</label>
+        <LocationPicker
+          onLocationSelect={(location) => {
+            setValue("location", location);
+          }}
+          className="w-full"
         />
         {errors.location && (
-          <p className="text-sm text-red-500">{errors.location.message}</p>
+          <p className="text-sm text-red-500">{errors.location.address?.message}</p>
         )}
       </div>
 

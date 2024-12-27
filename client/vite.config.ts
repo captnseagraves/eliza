@@ -35,6 +35,14 @@ export default defineConfig({
                 changeOrigin: true,
                 ws: true,
             },
+            "/events": {
+                target: "http://localhost:3001",
+                changeOrigin: true,
+            },
+            "/invitations": {
+                target: "http://localhost:3001",
+                changeOrigin: true,
+            },
             "/auth": {
                 target: "http://localhost:3001",
                 changeOrigin: true,

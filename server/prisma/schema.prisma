@@ -29,7 +29,7 @@ model Event {
   title       String
   description String
   dateTime    DateTime
-  location    String
+  location    Json        // Changed from String to Json
   imageUrl    String?
   creatorId   String
   createdAt   DateTime    @default(now())
