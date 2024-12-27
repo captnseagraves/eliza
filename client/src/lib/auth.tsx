@@ -22,6 +22,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(() => storage.getUser());
   const [isLoading, setIsLoading] = useState(true);
+  const [verifyPhoneNumber, setVerifyPhoneNumber] = useState<string>("");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (phoneNumber: string) => {
     try {
       await apiClient.post('/auth/login', { phoneNumber });
+      setVerifyPhoneNumber(phoneNumber); // Store the phone number for verification
       toast({
         title: "Verification code sent",
         description: "Please check your phone for the verification code.",
@@ -68,7 +70,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const verify = async (code: string) => {
     try {
-      const response = await apiClient.post<{ token: string; user: User }>('/auth/verify', { code });
+      const response = await apiClient.post<{ token: string; user: User }>('/auth/verify', { 
+        phoneNumber: verifyPhoneNumber,
+        code 
+      });
       storage.setToken(response.token);
       storage.setUser(response.user);
       setUser(response.user);

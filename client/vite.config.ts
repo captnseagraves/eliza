@@ -33,6 +33,11 @@ export default defineConfig({
             "/agents": {
                 target: "http://localhost:8080",
                 changeOrigin: true,
+                ws: true,
+            },
+            "/auth": {
+                target: "http://localhost:3001",
+                changeOrigin: true,
             },
         },
     },

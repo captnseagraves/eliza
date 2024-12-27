@@ -5,12 +5,11 @@ import { authenticateToken } from '../middleware/auth';
 const router = Router();
 
 // Public routes
-router.post('/request-verification', AuthController.requestVerification);
+router.post('/login', AuthController.requestVerification);
 router.post('/verify', AuthController.verifyCode);
 
 // Protected routes
 router.post('/logout', authenticateToken, AuthController.logout);
-router.get('/profile', authenticateToken, AuthController.getProfile);
-router.put('/profile', authenticateToken, AuthController.updateProfile);
+router.get('/me', authenticateToken, AuthController.getProfile);
 
 export default router;
