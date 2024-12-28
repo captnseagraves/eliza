@@ -1,111 +1,96 @@
-import { SignInButton, SignedIn, SignedOut } from "@clerk/nextjs"
-import { LearnMore } from "./components/learn-more"
-import screenshotDevices from "./images/user-button@2xrl.webp"
-import signIn from "./images/sign-in@2xrl.webp"
-import verify from "./images/verify@2xrl.webp"
-import userButton2 from "./images/user-button-2@2xrl.webp"
-import signUp from "./images/sign-up@2xrl.webp"
-import logo from "./images/logo.png"
-import "./home.css"
-import Image from "next/image"
+import { SignInButton, SignOutButton, SignedIn, SignedOut } from "@clerk/nextjs"
 import Link from "next/link"
-import { Footer } from "./components/footer"
-
-import { CARDS } from "./consts/cards"
-import { ClerkLogo } from "./components/clerk-logo"
-import { NextLogo } from "./components/next-logo"
 
 export default function Home() {
   return (
-    <>
-      <main className="bg-[#FAFAFA] relative">
-        <div className="w-full bg-white max-w-[75rem] mx-auto flex flex-col border-l border-r border-[#F2F2F2] row-span-3">
-          <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-px bg-[#F2F2F2]" />
-          <Image
-            alt="Device"
-            className="size-64 bg-transparent absolute left-1/2 -translate-x-[23.75rem] -top-6 h-[51.375rem] object-contain w-[39.0625rem]"
-            src={logo}
-            unoptimized
-          />
+    <main className="min-h-screen bg-gradient-to-b from-amber-50 to-orange-50">
+      {/* Navigation */}
+      <nav className="absolute top-0 right-0 p-6 flex gap-3">
+        <SignedIn>
+          <Link
+            href="/dashboard"
+            className="px-6 py-3 rounded-full bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors"
+          >
+            Dashboard
+          </Link>
+          <SignOutButton>
+            <button className="px-6 py-3 rounded-full bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">
+              Sign out
+            </button>
+          </SignOutButton>
+        </SignedIn>
+        <SignedOut>
+          <SignInButton>
+            <button className="px-6 py-3 rounded-full bg-orange-600 text-white text-sm font-semibold hover:bg-orange-700 transition-colors">
+              Sign in
+            </button>
+          </SignInButton>
+        </SignedOut>
+      </nav>
 
-          <div className="px-12 py-16 border-b border-[#F2F2F4]">
-            <div className="bg-[#F4F4F5] px-4 py-3 rounded-full inline-flex gap-4">
-              <ClerkLogo />
-              <div aria-hidden className="w-px h-6 bg-[#C7C7C8]" />
-              <NextLogo />
-            </div>
-          </div>
-
-          <div className="p-10 border-b border-[#F2F2F2]">
-            <h1 className="text-5xl font-bold tracking-tight text-[#131316] relative">
-              Auth starts here
+      {/* Hero Section */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+        <div className="text-center">
+          <div className="transform translate-y-[-1rem] opacity-100 transition duration-1000">
+            <h1 className="text-6xl font-bold text-gray-900 mb-6">
+              Welcome to <span className="text-orange-600">Dinewell.ai</span>
             </h1>
-
-            <p className="text-[#5E5F6E] pt-3 pb-6 max-w-[30rem] text-[1.0625rem] relative">
-              A simple and powerful Next.js template featuring authentication
-              and user management powered by Clerk.
+            <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
+              Your personal AI dinner host, making meaningful connections over delicious meals.
+              Let me, Mister Dinewell, help you organize the perfect dinner gatherings.
             </p>
-            <div className="relative flex gap-3">
-              <SignedIn>
-                <Link
-                  href="/dashboard"
-                  className="px-4 py-2 rounded-full bg-[#131316] text-white text-sm font-semibold"
-                >
-                  Dashboard
-                </Link>
-              </SignedIn>
-              <SignedOut>
-                <SignInButton>
-                  <button className="px-4 py-2 rounded-full bg-[#131316] text-white text-sm font-semibold">
-                    Sign in
-                  </button>
-                </SignInButton>
-              </SignedOut>
-            </div>
           </div>
-          <div className="flex gap-8 w-full h-[41.25rem] scale-[1.03]">
-            <div className="space-y-8 translate-y-12">
-              <Image
-                alt="Device"
-                src={signUp}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-            </div>
-            <div className="space-y-8 -translate-y-4">
-              <Image
-                alt="Device"
-                src={verify}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-              <Image
-                alt="Device"
-                src={userButton2}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-            </div>
-            <div className="space-y-8 -translate-y-[22.5rem]">
-              <Image
-                alt="Device"
-                src={signIn}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
-              <Image
-                alt="Device"
-                src={screenshotDevices}
-                unoptimized
-                className="flex-none rounded-xl bg-white shadow-[0_5px_15px_rgba(0,0,0,0.08),0_15px_35px_-5px_rgba(25,28,33,0.2)] ring-1 ring-gray-950/5"
-              />
+
+          <div className="flex gap-4 justify-center mb-16">
+            <SignedOut>
+              <SignInButton>
+                <button className="px-8 py-4 rounded-full bg-orange-600 text-white text-lg font-semibold hover:bg-orange-700 transition-colors">
+                  Start Hosting
+                </button>
+              </SignInButton>
+            </SignedOut>
+          </div>
+        </div>
+
+        {/* Features Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+          <div className="bg-white p-8 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300">
+            <div className="text-orange-600 text-4xl mb-4">🍽️</div>
+            <h3 className="text-xl font-semibold mb-2">Effortless Planning</h3>
+            <p className="text-gray-600">
+              Let me handle everything from invitations to RSVPs, while you focus on the joy of connection.
+            </p>
+          </div>
+
+          <div className="bg-white p-8 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300">
+            <div className="text-orange-600 text-4xl mb-4">🤝</div>
+            <h3 className="text-xl font-semibold mb-2">Meaningful Connections</h3>
+            <p className="text-gray-600">
+              Create lasting friendships over carefully curated dining experiences.
+            </p>
+          </div>
+
+          <div className="bg-white p-8 rounded-2xl shadow-xl transform hover:scale-105 transition-transform duration-300">
+            <div className="text-orange-600 text-4xl mb-4">📱</div>
+            <h3 className="text-xl font-semibold mb-2">Smart Coordination</h3>
+            <p className="text-gray-600">
+              Automated reminders, dietary preferences tracking, and seamless communication.
+            </p>
+          </div>
+        </div>
+
+        {/* Social Proof */}
+        <div className="mt-20 text-center">
+          <div className="opacity-100 transition-opacity duration-1000">
+            <h2 className="text-2xl font-semibold mb-8">Trusted by food lovers everywhere</h2>
+            <div className="flex flex-wrap justify-center gap-8">
+              <div className="text-gray-500">🌟 4.9/5 Average Rating</div>
+              <div className="text-gray-500">👥 10,000+ Happy Diners</div>
+              <div className="text-gray-500">🍽️ 5,000+ Dinners Hosted</div>
             </div>
           </div>
         </div>
-        <div className="absolute left-0 right-0 bottom-0 h-[18.75rem] bg-gradient-to-t from-white" />
-      </main>
-      <LearnMore cards={CARDS} />
-      <Footer />
-    </>
+      </div>
+    </main>
   )
 }
