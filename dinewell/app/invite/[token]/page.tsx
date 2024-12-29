@@ -8,6 +8,7 @@ import { format } from "date-fns"
 import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api"
 import { CalendarDays, MapPin, Clock, Utensils } from "lucide-react"
 import Image from "next/image"
+import { VerificationModal } from "@/components/verification-modal"
 
 interface Invitation {
   id: string
@@ -33,6 +34,9 @@ export default function InvitePage() {
   const params = useParams()
   const [invitation, setInvitation] = useState<Invitation | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [showVerification, setShowVerification] = useState(false)
+  const [pendingAction, setPendingAction] = useState<"ACCEPTED" | "DECLINED" | null>(null)
+  const [error, setError] = useState("")
 
   const { isLoaded } = useLoadScript({
     googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
@@ -44,13 +48,20 @@ export default function InvitePage() {
       .then(setInvitation)
   }, [params.token])
 
-  const handleResponse = async (status: "ACCEPTED" | "DECLINED") => {
+  const handleActionClick = (action: "ACCEPTED" | "DECLINED") => {
+    setPendingAction(action)
+    setShowVerification(true)
+  }
+
+  const handleVerified = async (phoneNumber: string) => {
+    if (!pendingAction) return
+
     try {
       setIsLoading(true)
       const response = await fetch(`/api/invite/${params.token}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify({ status: pendingAction, phoneNumber }),
       })
 
       if (!response.ok) {
@@ -59,8 +70,11 @@ export default function InvitePage() {
 
       const updatedInvitation = await response.json()
       setInvitation(updatedInvitation)
+      setShowVerification(false)
+      setPendingAction(null)
     } catch (error) {
       console.error("Error updating response:", error)
+      setError("Failed to update response")
     } finally {
       setIsLoading(false)
     }
@@ -156,9 +170,14 @@ export default function InvitePage() {
             {invitation.status === "PENDING" ? (
               <div className="space-y-4">
                 <div className="h-px bg-border" />
+                {error && (
+                  <div className="text-sm text-destructive text-center">
+                    {error}
+                  </div>
+                )}
                 <div className="flex gap-4 justify-center">
                   <Button
-                    onClick={() => handleResponse("ACCEPTED")}
+                    onClick={() => handleActionClick("ACCEPTED")}
                     disabled={isLoading}
                     size="lg"
                     className="w-32 bg-primary hover:bg-primary/90"
@@ -166,7 +185,7 @@ export default function InvitePage() {
                     Accept
                   </Button>
                   <Button
-                    onClick={() => handleResponse("DECLINED")}
+                    onClick={() => handleActionClick("DECLINED")}
                     variant="outline"
                     disabled={isLoading}
                     size="lg"
@@ -187,6 +206,15 @@ export default function InvitePage() {
           </div>
         </Card>
       </div>
+      <VerificationModal
+        isOpen={showVerification}
+        onClose={() => {
+          setShowVerification(false)
+          setPendingAction(null)
+        }}
+        onVerified={handleVerified}
+        intentAction={pendingAction || "ACCEPTED"}
+      />
     </div>
   )
 }
