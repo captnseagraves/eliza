@@ -1,0 +1,43 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Event {
+  id          String       @id @default(cuid())
+  name        String
+  date        DateTime
+  time        String
+  location    String
+  description String
+  hostId      String
+  latitude    Float?
+  longitude   Float?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  invitations Invitation[]
+
+  @@index([hostId])
+}
+
+model Invitation {
+  id              String    @id @default(cuid())
+  eventId         String
+  phoneNumber     String
+  invitationToken String    @unique
+  status          String    @default("PENDING")
+  personalMessage String
+  createdAt       DateTime  @default(now())
+  respondedAt     DateTime?
+  event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId])
+  @@index([invitationToken])
+}
