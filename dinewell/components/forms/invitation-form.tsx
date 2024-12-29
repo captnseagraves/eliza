@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
+import { ChatBox } from "@/components/chat/chat-box"
 
 const formSchema = z.object({
   phoneNumber: z.string().min(1, "Phone number is required").regex(/^\+1\d{10}$/, "Must be in format: +1XXXXXXXXXX"),
@@ -70,56 +71,62 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
   }
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="phoneNumber"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Phone Number</FormLabel>
-              <FormControl>
-                <Input 
-                  {...field} 
-                  placeholder="+1XXXXXXXXXX"
-                  disabled={isLoading}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <Form {...form}>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <FormField
+            control={form.control}
+            name="phoneNumber"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Phone Number</FormLabel>
+                <FormControl>
+                  <Input 
+                    {...field} 
+                    placeholder="+1XXXXXXXXXX"
+                    disabled={isLoading}
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        <FormField
-          control={form.control}
-          name="personalMessage"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Personal Message (Optional)</FormLabel>
-              <FormControl>
-                <Textarea 
-                  {...field}
-                  placeholder="Add a personal message to your invitation..."
-                  disabled={isLoading}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+          <FormField
+            control={form.control}
+            name="personalMessage"
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>Personal Message (Optional)</FormLabel>
+                <FormControl>
+                  <Textarea 
+                    {...field}
+                    placeholder="Add a personal message to your invitation..."
+                    disabled={isLoading}
+                    className="min-h-[100px]"
+                  />
+                </FormControl>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
-        {invitationLink && (
-          <div className="text-sm text-muted-foreground break-all">
-            Invitation Link: {invitationLink}
-          </div>
-        )}
-
-        <div className="flex justify-end">
           <Button type="submit" disabled={isLoading}>
             {isLoading ? "Sending..." : "Send Invitation"}
           </Button>
-        </div>
-      </form>
-    </Form>
+
+          {invitationLink && (
+            <div className="mt-4 p-4 bg-muted rounded-lg">
+              <p className="font-medium">Invitation Link:</p>
+              <p className="text-sm break-all">{invitationLink}</p>
+            </div>
+          )}
+        </form>
+      </Form>
+
+      <div className="lg:border-l lg:pl-6">
+        <ChatBox eventId={eventId} />
+      </div>
+    </div>
   )
 }
