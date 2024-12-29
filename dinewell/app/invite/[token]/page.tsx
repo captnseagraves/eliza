@@ -117,8 +117,8 @@ export default function InvitePage() {
                   <div className="w-full border-t" />
                 </div>
                 <div className="relative flex justify-center">
-                  <span className="bg-background px-4 text-lg italic text-muted-foreground">
-                    "{invitation.personalMessage}"
+                  <span className="bg-background px-4 text-lg italic text-muted-foreground whitespace-pre-wrap">
+                    {invitation.personalMessage.replace(/\\n\\n/g, '\n\n')}
                   </span>
                 </div>
               </div>
