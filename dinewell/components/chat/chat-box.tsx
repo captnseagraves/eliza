@@ -106,7 +106,7 @@ export function ChatBox({ eventId }: ChatBoxProps) {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 ${
+                  className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
                     message.user === "user"
                       ? "bg-primary text-primary-foreground"
                       : "bg-muted"
@@ -118,7 +118,7 @@ export function ChatBox({ eventId }: ChatBoxProps) {
             ))
           ) : (
             <div className="text-center text-muted-foreground">
-              Greetings! I am Mister Dinewell, at your service. How may I assist you with your dinner arrangements? *adjusts monocle*
+              Greetings! I am Mister Dinewell, at your service. May I help you to draft delightful invitations to your guests?
             </div>
           )}
         </div>

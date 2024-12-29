@@ -33,6 +33,7 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [invitationLink, setInvitationLink] = useState<string>("")
+  const [error, setError] = useState<string>("")
 
   const form = useForm<InvitationFormValues>({
     resolver: zodResolver(formSchema),
@@ -45,6 +46,8 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
   const onSubmit = async (data: InvitationFormValues) => {
     try {
       setIsLoading(true)
+      setError("")
+      
       const response = await fetch(`/api/events/${eventId}/invitations`, {
         method: "POST",
         headers: {
@@ -54,17 +57,25 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
       })
 
       if (!response.ok) {
-        throw new Error("Failed to send invitation")
+        const text = await response.text()
+        let message: string
+        try {
+          const json = JSON.parse(text)
+          message = json.error || "Failed to send invitation"
+        } catch {
+          message = text || "Failed to send invitation"
+        }
+        throw new Error(message)
       }
 
       const result = await response.json()
       const baseUrl = window.location.origin
       setInvitationLink(`${baseUrl}/invite/${result.token}`)
-
       form.reset()
       router.refresh()
     } catch (error) {
       console.error("Error sending invitation:", error)
+      setError(error instanceof Error ? error.message : "Failed to send invitation")
     } finally {
       setIsLoading(false)
     }
@@ -74,6 +85,12 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          {error && (
+            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+              {error}
+            </div>
+          )}
+          
           <FormField
             control={form.control}
             name="phoneNumber"
