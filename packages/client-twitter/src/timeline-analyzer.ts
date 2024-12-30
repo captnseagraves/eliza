@@ -3,7 +3,7 @@ import { elizaLogger } from "@ai16z/eliza";
 import { IAgentRuntime, generateText } from "@ai16z/eliza";
 
 export class TimelineAnalyzer {
-    private lastThreeTopics: string[] = [];
+    private lastFiveTopics: string[] = [];
 
     constructor(private runtime?: IAgentRuntime) {}
 
@@ -17,10 +17,10 @@ export class TimelineAnalyzer {
         if (!this.runtime) return;
 
         const cachedTopics = await this.runtime.cacheManager.get<string[]>(
-            `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastThreeTopics`
+            `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastFiveTopics`
         );
         if (cachedTopics) {
-            this.lastThreeTopics = cachedTopics;
+            this.lastFiveTopics = cachedTopics;
             elizaLogger.info(
                 `[TimelineAnalyzer] Loaded topics from cache: ${cachedTopics.join(", ")}`
             );
@@ -31,11 +31,11 @@ export class TimelineAnalyzer {
         if (!this.runtime) return;
 
         await this.runtime.cacheManager.set(
-            `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastThreeTopics`,
-            this.lastThreeTopics
+            `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastFiveTopics`,
+            this.lastFiveTopics
         );
         elizaLogger.info(
-            `[TimelineAnalyzer] Saved topics to cache: ${this.lastThreeTopics.join(", ")}`
+            `[TimelineAnalyzer] Saved topics to cache: ${this.lastFiveTopics.join(", ")}`
         );
     }
 
@@ -51,18 +51,18 @@ export class TimelineAnalyzer {
         These themes are trending among my followers:
         {{themes}}
 
-        My last three topics were:
-        {{lastThreeTopics}}
+        My last five topics were:
+        {{lastFiveTopics}}
 
         Select ONE topic that would be most engaging to tweet about.
         Consider:
         1. Current relevance
         2. Potential for engagement
         3. Alignment with my expertise
-        4. Must be semantically different from last three topics
+        4. Must be semantically different from last five topics
         5. Connection to {{characterName}}'s interests
 
-        If no suitable different topic exists from trending themes, select a random topic from:
+        If no theme is semantically different from the last five topics, select a random topic from:
         {{characterTopics}}
 
         IMPORTANT: Return ONLY the selected topic as a single line, without any explanation.
@@ -115,17 +115,20 @@ export class TimelineAnalyzer {
         }
 
         try {
-            elizaLogger.info("[TimelineAnalyzer] Current topic history:", this.lastThreeTopics);
-            
+            elizaLogger.info(
+                "[TimelineAnalyzer] Current topic history:",
+                this.lastFiveTopics
+            );
+
             const characterTopics = this.runtime.character.topics.join("\n");
             const lastTopics =
-                this.lastThreeTopics.length > 0
-                    ? this.lastThreeTopics.join("\n")
+                this.lastFiveTopics.length > 0
+                    ? this.lastFiveTopics.join("\n")
                     : "No previous topics";
 
             const context = this.topicSelectionPrompt
                 .replace("{{themes}}", themes)
-                .replace("{{lastThreeTopics}}", lastTopics)
+                .replace("{{lastFiveTopics}}", lastTopics)
                 .replace("{{characterTopics}}", characterTopics)
                 .replace(/{{characterName}}/g, this.runtime.character.name);
 
@@ -137,19 +140,27 @@ export class TimelineAnalyzer {
             });
 
             // Extract just the topic, removing any explanation
-            const selectedTopic = response.split('\n')[0].trim();
-            
-            elizaLogger.info(`[TimelineAnalyzer] Selected topic: "${selectedTopic}"`);
-            elizaLogger.info("[TimelineAnalyzer] Previous topics:", this.lastThreeTopics);
+            const selectedTopic = response.split("\n")[0].trim();
 
-            // Update lastThreeTopics and save to cache
-            this.lastThreeTopics.push(selectedTopic);
-            if (this.lastThreeTopics.length > 3) {
-                this.lastThreeTopics.shift();
+            elizaLogger.info(
+                `[TimelineAnalyzer] Selected topic: "${selectedTopic}"`
+            );
+            elizaLogger.info(
+                "[TimelineAnalyzer] Previous topics:",
+                this.lastFiveTopics
+            );
+
+            // Update lastFiveTopics and save to cache
+            this.lastFiveTopics.push(selectedTopic);
+            if (this.lastFiveTopics.length > 5) {
+                this.lastFiveTopics.shift();
             }
             await this.saveTopicsToCache();
-            
-            elizaLogger.info("[TimelineAnalyzer] Updated topic history:", this.lastThreeTopics);
+
+            elizaLogger.info(
+                "[TimelineAnalyzer] Updated topic history:",
+                this.lastFiveTopics
+            );
             return selectedTopic;
         } catch (error) {
             elizaLogger.error(

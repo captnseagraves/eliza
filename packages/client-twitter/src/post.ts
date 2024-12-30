@@ -97,6 +97,26 @@ export class TwitterPostClient {
         this.strategy = this.initializeStrategy();
         elizaLogger.info("Twitter post client initialized and ready");
 
+        if (
+            this.runtime.getSetting("POST_IMMEDIATELY") != null &&
+            this.runtime.getSetting("POST_IMMEDIATELY") != ""
+        ) {
+            postImmediately = parseBooleanFromText(
+                this.runtime.getSetting("POST_IMMEDIATELY")
+            );
+        }
+
+        // Handle immediate post first if requested
+        if (postImmediately) {
+            await this.generateNewTweet();
+            // Update last post timestamp to prevent double posting
+            await this.runtime.cacheManager.set(
+                `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastPost`,
+                { timestamp: Date.now() }
+            );
+        }
+
+        // Start the regular posting loop
         const generateNewTweetLoop = async () => {
             const lastPost = await this.runtime.cacheManager.get<{
                 timestamp: number;
@@ -118,6 +138,11 @@ export class TwitterPostClient {
 
             if (Date.now() > lastPostTimestamp + delay) {
                 await this.generateNewTweet();
+                // Update last post timestamp after successful tweet
+                await this.runtime.cacheManager.set(
+                    `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastPost`,
+                    { timestamp: Date.now() }
+                );
             }
 
             setTimeout(() => {
@@ -126,18 +151,6 @@ export class TwitterPostClient {
 
             elizaLogger.log(`Next tweet scheduled in ${randomMinutes} minutes`);
         };
-
-        if (
-            this.runtime.getSetting("POST_IMMEDIATELY") != null &&
-            this.runtime.getSetting("POST_IMMEDIATELY") != ""
-        ) {
-            postImmediately = parseBooleanFromText(
-                this.runtime.getSetting("POST_IMMEDIATELY")
-            );
-        }
-        if (postImmediately) {
-            await this.generateNewTweet();
-        }
 
         generateNewTweetLoop();
     }
