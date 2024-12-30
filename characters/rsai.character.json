@@ -2,7 +2,7 @@
     "name": "rsai",
     "plugins": [],
     "people": [],
-    "clients": ["twitter", "telegram"],
+    "clients": ["twitter"],
     "modelProvider": "anthropic",
     "settings": {
         "secrets": {},

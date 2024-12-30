@@ -337,7 +337,10 @@ export class TimelineAnalysisStrategy extends LegacyPostStrategy {
         this.timelineAnalyzer = new TimelineAnalyzer(runtime);
     }
 
-    public async generateTweet(): Promise<void> {
+    async generateTweet(): Promise<void> {
+        // Initialize analyzer if not already done
+        await this.timelineAnalyzer.init();
+        
         try {
             elizaLogger.log("[Strategy] Starting tweet generation process");
             elizaLogger.log("[Strategy] Using Timeline Analysis Strategy");

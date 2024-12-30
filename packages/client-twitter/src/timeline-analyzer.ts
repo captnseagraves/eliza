@@ -3,7 +3,41 @@ import { elizaLogger } from "@ai16z/eliza";
 import { IAgentRuntime, generateText } from "@ai16z/eliza";
 
 export class TimelineAnalyzer {
+    private lastThreeTopics: string[] = [];
+
     constructor(private runtime?: IAgentRuntime) {}
+
+    async init() {
+        if (this.runtime) {
+            await this.loadTopicsFromCache();
+        }
+    }
+
+    private async loadTopicsFromCache() {
+        if (!this.runtime) return;
+
+        const cachedTopics = await this.runtime.cacheManager.get<string[]>(
+            `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastThreeTopics`
+        );
+        if (cachedTopics) {
+            this.lastThreeTopics = cachedTopics;
+            elizaLogger.info(
+                `[TimelineAnalyzer] Loaded topics from cache: ${cachedTopics.join(", ")}`
+            );
+        }
+    }
+
+    private async saveTopicsToCache() {
+        if (!this.runtime) return;
+
+        await this.runtime.cacheManager.set(
+            `twitter/${this.runtime.getSetting("TWITTER_USERNAME")}/lastThreeTopics`,
+            this.lastThreeTopics
+        );
+        elizaLogger.info(
+            `[TimelineAnalyzer] Saved topics to cache: ${this.lastThreeTopics.join(", ")}`
+        );
+    }
 
     private readonly themeAnalysisPrompt = `
         Analyze these tweets from my followers:
@@ -17,18 +51,22 @@ export class TimelineAnalyzer {
         These themes are trending among my followers:
         {{themes}}
 
+        My last three topics were:
+        {{lastThreeTopics}}
+
         Select ONE topic that would be most engaging to tweet about.
         Consider:
         1. Current relevance
         2. Potential for engagement
         3. Alignment with my expertise
-        4. Connection to {{characterName}}'s interests
+        4. Must be semantically different from last three topics
+        5. Connection to {{characterName}}'s interests
 
-        Context about {{characterName}}:
-        {{characterBio}}
-        {{characterLore}}
+        If no suitable different topic exists from trending themes, select a random topic from:
+        {{characterTopics}}
 
-        Return only the selected topic.
+        IMPORTANT: Return ONLY the selected topic as a single line, without any explanation.
+        Example response: "DeFi innovation"
     `;
 
     private async analyzeTimeline(tweets: Tweet[]): Promise<string[]> {
@@ -77,35 +115,46 @@ export class TimelineAnalyzer {
         }
 
         try {
+            elizaLogger.info("[TimelineAnalyzer] Current topic history:", this.lastThreeTopics);
+            
+            const characterTopics = this.runtime.character.topics.join("\n");
+            const lastTopics =
+                this.lastThreeTopics.length > 0
+                    ? this.lastThreeTopics.join("\n")
+                    : "No previous topics";
+
             const context = this.topicSelectionPrompt
                 .replace("{{themes}}", themes)
-                .replace(/{{characterName}}/g, this.runtime.character.name)
-                .replace(
-                    "{{characterBio}}",
-                    this.runtime.character.bio.join("\n")
-                )
-                .replace(
-                    "{{characterLore}}",
-                    this.runtime.character.lore.join("\n")
-                );
+                .replace("{{lastThreeTopics}}", lastTopics)
+                .replace("{{characterTopics}}", characterTopics)
+                .replace(/{{characterName}}/g, this.runtime.character.name);
 
-            elizaLogger.log(
-                `[TimelineAnalyzer] Selecting topic from themes: "${themes}"`
-            );
-
+            elizaLogger.info("[TimelineAnalyzer] Selecting topic");
             const response = await generateText({
                 runtime: this.runtime,
                 context,
-                modelClass: "small",
+                modelClass: "medium",
             });
-            const topic = response.trim();
 
-            elizaLogger.log(`[TimelineAnalyzer] Selected topic: "${topic}"`);
+            // Extract just the topic, removing any explanation
+            const selectedTopic = response.split('\n')[0].trim();
+            
+            elizaLogger.info(`[TimelineAnalyzer] Selected topic: "${selectedTopic}"`);
+            elizaLogger.info("[TimelineAnalyzer] Previous topics:", this.lastThreeTopics);
 
-            return topic;
+            // Update lastThreeTopics and save to cache
+            this.lastThreeTopics.push(selectedTopic);
+            if (this.lastThreeTopics.length > 3) {
+                this.lastThreeTopics.shift();
+            }
+            await this.saveTopicsToCache();
+            
+            elizaLogger.info("[TimelineAnalyzer] Updated topic history:", this.lastThreeTopics);
+            return selectedTopic;
         } catch (error) {
             elizaLogger.error(
-                `[TimelineAnalyzer] Error selecting topic: ${error}`
+                "[TimelineAnalyzer] Error extracting topic:",
+                error
             );
             return null;
         }
