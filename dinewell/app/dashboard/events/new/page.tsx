@@ -9,11 +9,19 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { useLoadScript, Autocomplete, GoogleMap, Marker } from "@react-google-maps/api"
+import { Autocomplete, GoogleMap, Marker } from "@react-google-maps/api"
 import { useRef, useState, useCallback } from "react"
 import { useRouter } from "next/navigation"
 
-const libraries = ["places"]
+const mapContainerStyle = {
+  width: "100%",
+  height: "300px",
+}
+
+const defaultCenter = {
+  lat: 37.7749,
+  lng: -122.4194,
+}
 
 const eventFormSchema = z.object({
   name: z.string().min(2, {
@@ -37,27 +45,12 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>
 
-const mapContainerStyle = {
-  width: "100%",
-  height: "300px",
-}
-
-const defaultCenter = {
-  lat: 37.7749,
-  lng: -122.4194,
-}
-
 export default function NewEventPage() {
   const [mapCenter, setMapCenter] = useState(defaultCenter)
   const [markerPosition, setMarkerPosition] = useState<google.maps.LatLngLiteral | null>(null)
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   const mapRef = useRef<google.maps.Map | null>(null)
   
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-    libraries: libraries as any,
-  })
-
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
     defaultValues: {
@@ -95,6 +88,7 @@ export default function NewEventPage() {
 
       const event = await response.json()
       router.push(`/dashboard/events/${event.id}`)
+      router.refresh()
     } catch (error) {
       console.error("Error creating event:", error)
     }
@@ -106,7 +100,7 @@ export default function NewEventPage() {
       const lat = place.geometry.location.lat()
       const lng = place.geometry.location.lng()
       
-      form.setValue("location", place.formatted_address)
+      form.setValue("location", `${place.name} - ${place.formatted_address}`)
       form.setValue("latitude", lat)
       form.setValue("longitude", lng)
       
@@ -116,10 +110,6 @@ export default function NewEventPage() {
       mapRef.current?.panTo({ lat, lng })
       mapRef.current?.setZoom(15)
     }
-  }
-
-  if (!isLoaded) {
-    return <div>Loading...</div>
   }
 
   return (
