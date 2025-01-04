@@ -9,12 +9,14 @@ import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api"
 import { CalendarDays, MapPin, Clock, Utensils } from "lucide-react"
 import Image from "next/image"
 import { VerificationModal } from "@/components/verification-modal"
+import { ChatBox } from "@/components/chat/chat-box"
 
 interface Invitation {
   id: string
   status: "PENDING" | "ACCEPTED" | "DECLINED"
   personalMessage: string
   event: {
+    id: string
     name: string
     date: string
     time: string
@@ -96,7 +98,7 @@ export default function InvitePage() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <div className="container max-w-2xl py-10 px-4">
+      <div className="container max-w-4xl py-10 px-4 space-y-8">
         <div className="text-center mb-8">
           <Image
             src="/logo.png"
@@ -121,22 +123,18 @@ export default function InvitePage() {
                 <p>{format(new Date(invitation.event.date), "MMMM d, yyyy")}</p>
                 <span>•</span>
                 <Clock className="w-4 h-4" />
-                <p>{invitation.event.time}</p>
+                <p>{format(new Date(`2000-01-01T${invitation.event.time}`), 'h:mm a')}</p>
               </div>
             </div>
 
-            {invitation.personalMessage && (
-              <div className="relative py-6">
-                <div className="absolute inset-0 flex items-center">
-                  <div className="w-full border-t" />
-                </div>
-                <div className="relative flex justify-center">
-                  <span className="bg-background px-4 text-lg italic text-muted-foreground whitespace-pre-wrap">
-                    {invitation.personalMessage.replace(/\\n\\n/g, '\n\n')}
-                  </span>
-                </div>
+            <div className="flex justify-center py-6">
+              <div className="w-[95%]">
+                <ChatBox 
+                  eventId={invitation.event.id}
+                  initialMessage={invitation.personalMessage}
+                />
               </div>
-            )}
+            </div>
 
             <div className="space-y-6">
               <div className="space-y-4">
@@ -169,7 +167,6 @@ export default function InvitePage() {
 
             {invitation.status === "PENDING" ? (
               <div className="space-y-4">
-                <div className="h-px bg-border" />
                 {error && (
                   <div className="text-sm text-destructive text-center">
                     {error}
@@ -197,7 +194,6 @@ export default function InvitePage() {
               </div>
             ) : (
               <div className="text-center space-y-2">
-                <div className="h-px bg-border" />
                 <p className="text-lg font-medium text-primary">
                   You have {invitation.status.toLowerCase()} this invitation
                 </p>

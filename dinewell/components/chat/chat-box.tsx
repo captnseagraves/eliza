@@ -14,11 +14,14 @@ interface Message {
 
 interface ChatBoxProps {
   eventId: string
+  initialMessage?: string
 }
 
-export function ChatBox({ eventId }: ChatBoxProps) {
+export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
   const [input, setInput] = useState("")
-  const [messages, setMessages] = useState<Message[]>([])
+  const [messages, setMessages] = useState<Message[]>(
+    initialMessage ? [{ text: initialMessage, user: "assistant" }] : []
+  )
   const { agentId, isLoading, error } = useFirstAgent()
 
   const mutation = useMutation({
@@ -89,14 +92,9 @@ export function ChatBox({ eventId }: ChatBoxProps) {
   }
 
   return (
-    <Card className="flex flex-col h-[500px] w-full shadow-lg">
-      <div className="bg-primary p-4 rounded-t-lg">
-        <h3 className="text-lg font-semibold text-primary-foreground">
-          Chat with Mister Dinewell
-        </h3>
-      </div>
-      <div className="flex-1 min-h-0 overflow-y-auto p-4">
-        <div className="max-w-3xl mx-auto space-y-4">
+    <Card className="w-full shadow-md">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 h-[320px]">
+        <div className="space-y-4">
           {messages.length > 0 ? (
             messages.map((message, index) => (
               <div
@@ -118,22 +116,22 @@ export function ChatBox({ eventId }: ChatBoxProps) {
             ))
           ) : (
             <div className="text-center text-muted-foreground">
-              Greetings! I am Mister Dinewell, at your service. May I help you to draft delightful invitations to your guests?
+              Greetings! I am Mister Dinewell, at your service. How may I assist you with this dinner invitation?
             </div>
           )}
         </div>
       </div>
 
-      <div className="border-t p-4 bg-background rounded-b-lg">
+      <div className="border-t p-3 bg-background rounded-b-lg">
         <form onSubmit={handleSubmit} className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message to Mister Dinewell..."
+            placeholder="Type your message..."
             className="flex-1"
             disabled={mutation.isPending}
           />
-          <Button type="submit" disabled={mutation.isPending || !agentId}>
+          <Button type="submit" size="sm" disabled={mutation.isPending || !agentId}>
             {mutation.isPending ? "..." : "Send"}
           </Button>
         </form>
