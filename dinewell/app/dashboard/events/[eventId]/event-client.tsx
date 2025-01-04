@@ -84,7 +84,7 @@ export function EventClient({ params, event }: EventPageProps) {
                   </div>
                   <div className="flex items-center space-x-2">
                     <ClockIcon className="w-5 h-5 text-gray-500" />
-                    <span>{event.time}</span>
+                    <span>{format(new Date(`2000-01-01T${event.time}`), "h:mm a")}</span>
                   </div>
                   <div className="flex items-center space-x-2">
                     <MapPinIcon className="w-5 h-5 text-gray-500" />

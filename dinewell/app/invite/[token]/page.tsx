@@ -10,6 +10,7 @@ import { CalendarDays, MapPin, Clock, Utensils } from "lucide-react"
 import Image from "next/image"
 import { VerificationModal } from "@/components/verification-modal"
 import { ChatBox } from "@/components/chat/chat-box"
+import { formatEventTime } from "@/lib/utils"
 
 interface Invitation {
   id: string
@@ -123,7 +124,7 @@ export default function InvitePage() {
                 <p>{format(new Date(invitation.event.date), "MMMM d, yyyy")}</p>
                 <span>•</span>
                 <Clock className="w-4 h-4" />
-                <p>{format(new Date(`2000-01-01T${invitation.event.time}`), 'h:mm a')}</p>
+                <p>{format(new Date(`2000-01-01T${invitation.event.time}`), "h:mm a")}</p>
               </div>
             </div>
 
