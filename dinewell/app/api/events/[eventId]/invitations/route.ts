@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { currentUser } from "@clerk/nextjs/server"
 import { prisma } from "@/lib/prisma"
 import { sendInvitationSMS } from "@/lib/twilio"
-import crypto from "crypto"
+import { nanoid } from 'nanoid'
 
 export async function POST(
   req: Request,
@@ -36,8 +36,8 @@ export async function POST(
       return new NextResponse("Event not found", { status: 404 })
     }
 
-    // Generate invitation token
-    const invitationToken = crypto.randomBytes(32).toString("hex")
+    // Generate shorter invitation token
+    const invitationToken = nanoid(10) // This will generate a 10-character token
 
     // Create invitation
     const invitation = await prisma.invitation.create({

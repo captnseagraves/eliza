@@ -15,6 +15,8 @@ type Invitation = {
   id: string
   phoneNumber: string
   status: "PENDING" | "ACCEPTED" | "DECLINED"
+  invitationToken: string
+  personalMessage: string
   createdAt: Date
   respondedAt: Date | null
 }
@@ -26,14 +28,19 @@ interface InvitationListProps {
 export function InvitationList({ invitations }: InvitationListProps) {
   if (!invitations.length) {
     return (
-      <div className="text-center py-6 text-gray-500">
+      <div className="text-center text-sm text-muted-foreground">
         No invitations sent yet
       </div>
     )
   }
 
+  const getInviteUrl = (token: string) => {
+    const baseUrl = window.location.origin
+    return `${baseUrl}/invite/${token}`
+  }
+
   return (
-    <div className="overflow-x-auto">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -41,6 +48,7 @@ export function InvitationList({ invitations }: InvitationListProps) {
             <TableHead>Status</TableHead>
             <TableHead>Sent</TableHead>
             <TableHead>Responded</TableHead>
+            <TableHead>Invitation URL</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -54,10 +62,10 @@ export function InvitationList({ invitations }: InvitationListProps) {
                       ? "success"
                       : invitation.status === "DECLINED"
                       ? "destructive"
-                      : "default"
+                      : "secondary"
                   }
                 >
-                  {invitation.status.charAt(0) + invitation.status.slice(1).toLowerCase()}
+                  {invitation.status}
                 </Badge>
               </TableCell>
               <TableCell>{format(new Date(invitation.createdAt), "MMM d, yyyy")}</TableCell>
@@ -65,6 +73,9 @@ export function InvitationList({ invitations }: InvitationListProps) {
                 {invitation.respondedAt
                   ? format(new Date(invitation.respondedAt), "MMM d, yyyy")
                   : "-"}
+              </TableCell>
+              <TableCell className="font-mono text-sm text-muted-foreground">
+                {getInviteUrl(invitation.invitationToken)}
               </TableCell>
             </TableRow>
           ))}
