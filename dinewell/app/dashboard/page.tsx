@@ -46,7 +46,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>{event.name}</CardTitle>
             <CardDescription>
-              {format(new Date(event.date), "MMMM d, yyyy")} at {event.time}
+              {format(new Date(event.date), "MMMM d, yyyy")} at {format(new Date(event.time), "h:mm a")}
             </CardDescription>
           </CardHeader>
           <CardContent>
