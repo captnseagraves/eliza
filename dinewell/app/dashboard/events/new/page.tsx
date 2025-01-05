@@ -12,6 +12,8 @@ import * as z from "zod"
 import { Map } from "@/components/ui/map"
 import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
+import { Autocomplete } from "@react-google-maps/api"
+import { useGoogleMaps } from "@/providers/google-maps-provider"
 
 const eventFormSchema = z.object({
   name: z.string().min(2, {
@@ -42,7 +44,10 @@ const defaultCenter = {
 
 export default function NewEventPage() {
   const router = useRouter()
+  const { isLoaded } = useGoogleMaps()
   const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null)
+  const [mapCenter, setMapCenter] = useState(defaultCenter)
+  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -80,18 +85,19 @@ export default function NewEventPage() {
     }
   }
 
-  const handleLocationSelect = (location: google.maps.LatLngLiteral) => {
-    setSelectedLocation(location)
-    // Use the Google Maps Geocoding service to get the address
-    const geocoder = new google.maps.Geocoder()
-    geocoder.geocode({ location }, (results, status) => {
-      if (status === "OK" && results?.[0]) {
-        const address = results[0].formatted_address
-        form.setValue("location", address)
-        form.setValue("latitude", location.lat)
-        form.setValue("longitude", location.lng)
-      }
-    })
+  const handlePlaceSelect = () => {
+    const place = autocompleteRef.current?.getPlace()
+    if (place?.formatted_address && place.geometry?.location) {
+      const lat = place.geometry.location.lat()
+      const lng = place.geometry.location.lng()
+      
+      form.setValue("location", `${place.name} - ${place.formatted_address}`)
+      form.setValue("latitude", lat)
+      form.setValue("longitude", lng)
+      
+      setMapCenter({ lat, lng })
+      setSelectedLocation({ lat, lng })
+    }
   }
 
   return (
@@ -155,36 +161,49 @@ export default function NewEventPage() {
                   control={form.control}
                   name="location"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="space-y-4">
                       <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Input placeholder="Enter venue address" {...field} />
+                        {isLoaded ? (
+                          <Autocomplete
+                            onLoad={(autocomplete) => {
+                              autocompleteRef.current = autocomplete
+                            }}
+                            onPlaceChanged={handlePlaceSelect}
+                            options={{ types: ["establishment", "geocode"] }}
+                          >
+                            <Input
+                              placeholder="Search for a location..."
+                              {...field}
+                            />
+                          </Autocomplete>
+                        ) : (
+                          <Input
+                            placeholder="Loading location search..."
+                            disabled
+                            {...field}
+                          />
+                        )}
                       </FormControl>
+                      <div className="rounded-md overflow-hidden border">
+                        <Map
+                          center={mapCenter}
+                          zoom={15}
+                          markers={selectedLocation ? [selectedLocation] : []}
+                          mapContainerStyle={{
+                            width: "100%",
+                            height: "300px",
+                          }}
+                          options={{
+                            disableDefaultUI: true,
+                            zoomControl: true,
+                          }}
+                        />
+                      </div>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
-
-                <div className="space-y-4">
-                  <label className="text-sm font-medium">Select Location on Map</label>
-                  <Map
-                    center={selectedLocation || defaultCenter}
-                    markers={selectedLocation ? [selectedLocation] : []}
-                    zoom={selectedLocation ? 15 : 12}
-                    options={{
-                      disableDefaultUI: false,
-                      zoomControl: true,
-                      streetViewControl: false,
-                      mapTypeControl: true,
-                    }}
-                    onClick={handleLocationSelect}
-                    mapContainerStyle={{
-                      width: "100%",
-                      height: "300px",
-                      borderRadius: "0.5rem",
-                    }}
-                  />
-                </div>
 
                 <FormField
                   control={form.control}
