@@ -5,11 +5,11 @@ import { Card } from "@/components/ui/card"
 import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
 import { format } from "date-fns"
-import { GoogleMap, useLoadScript, Marker } from "@react-google-maps/api"
 import { CalendarDays, MapPin, Clock, Utensils } from "lucide-react"
 import Image from "next/image"
 import { VerificationModal } from "@/components/verification-modal"
 import { ChatBox } from "@/components/chat/chat-box"
+import { Map } from "@/components/ui/map"
 import { formatEventTime } from "@/lib/utils"
 
 interface Invitation {
@@ -41,10 +41,6 @@ export default function InvitePage() {
   const [pendingAction, setPendingAction] = useState<"ACCEPTED" | "DECLINED" | null>(null)
   const [error, setError] = useState("")
 
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-  })
-
   useEffect(() => {
     fetch(`/api/invite/${params.token}`)
       .then((res) => res.json())
@@ -73,7 +69,6 @@ export default function InvitePage() {
 
       const updatedInvitation = await response.json()
       setInvitation(updatedInvitation)
-      setShowVerification(false)
       setPendingAction(null)
     } catch (error) {
       console.error("Error updating response:", error)
@@ -83,7 +78,7 @@ export default function InvitePage() {
     }
   }
 
-  if (!invitation || !isLoaded) {
+  if (!invitation) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="animate-pulse text-2xl text-muted-foreground">
@@ -144,14 +139,17 @@ export default function InvitePage() {
                   <h2 className="text-xl font-semibold">Location</h2>
                 </div>
                 <p className="text-muted-foreground">{invitation.event.location}</p>
-                <div className="rounded-xl overflow-hidden border shadow-md">
-                  <GoogleMap
-                    mapContainerStyle={mapContainerStyle}
+                <div className="h-[300px] rounded-lg overflow-hidden">
+                  <Map
                     center={center}
                     zoom={15}
-                  >
-                    <Marker position={center} />
-                  </GoogleMap>
+                    markers={[center]}
+                    mapContainerStyle={mapContainerStyle}
+                    options={{
+                      disableDefaultUI: true,
+                      zoomControl: true,
+                    }}
+                  />
                 </div>
               </div>
 
@@ -204,13 +202,9 @@ export default function InvitePage() {
         </Card>
       </div>
       <VerificationModal
-        isOpen={showVerification}
-        onClose={() => {
-          setShowVerification(false)
-          setPendingAction(null)
-        }}
+        open={showVerification}
+        onOpenChange={setShowVerification}
         onVerified={handleVerified}
-        intentAction={pendingAction || "ACCEPTED"}
       />
     </div>
   )

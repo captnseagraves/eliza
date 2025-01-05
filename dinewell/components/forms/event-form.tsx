@@ -16,7 +16,8 @@ import {
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
-import { Autocomplete, GoogleMap, Marker } from "@react-google-maps/api"
+import { Autocomplete } from "@react-google-maps/api"
+import { Map } from "@/components/ui/map"
 
 const mapContainerStyle = {
   width: "100%",
@@ -66,16 +67,11 @@ export function EventForm({
       : null
   )
   const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const mapRef = useRef<google.maps.Map | null>(null)
 
   const form = useForm<EventFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues,
   })
-
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map
-  }, [])
 
   const onSubmit = async (data: EventFormValues) => {
     try {
@@ -127,9 +123,6 @@ export function EventForm({
 
       setMapCenter({ lat, lng })
       setMarkerPosition({ lat, lng })
-
-      mapRef.current?.panTo({ lat, lng })
-      mapRef.current?.setZoom(15)
     }
   }
 
@@ -194,20 +187,17 @@ export function EventForm({
                   <Input {...field} />
                 </Autocomplete>
               </FormControl>
-              <div className="rounded-md border">
-                <GoogleMap
-                  mapContainerStyle={mapContainerStyle}
+              <div className="h-[300px] rounded-lg overflow-hidden">
+                <Map
                   center={mapCenter}
                   zoom={15}
-                  onLoad={onMapLoad}
-                >
-                  {markerPosition && (
-                    <Marker
-                      position={markerPosition}
-                      animation={google.maps.Animation.DROP}
-                    />
-                  )}
-                </GoogleMap>
+                  markers={markerPosition ? [markerPosition] : []}
+                  mapContainerStyle={mapContainerStyle}
+                  options={{
+                    disableDefaultUI: true,
+                    zoomControl: true,
+                  }}
+                />
               </div>
               <FormMessage />
             </FormItem>
