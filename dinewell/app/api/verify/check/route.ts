@@ -17,9 +17,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Normalize phone number to +1XXXXXXXXXX format for Twilio
+    const normalizedPhone = phoneNumber.replace(/\D/g, "")
+    if (!normalizedPhone.match(/^1?\d{10}$/)) {
+      return new NextResponse("Invalid phone number format", { status: 400 })
+    }
+    
+    const twilioPhone = `+1${normalizedPhone.slice(-10)}`
+
     const verification_check = await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_ID!)
-      .verificationChecks.create({ to: phoneNumber, code });
+      .verificationChecks.create({ to: twilioPhone, code });
 
     if (verification_check.status === "approved") {
       return NextResponse.json({ status: "approved" });

@@ -14,16 +14,15 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { ChatBox } from "@/components/chat/chat-box"
+import { PhoneInput } from "@/components/ui/phone-input"
+import { Card } from "@/components/ui/card"
 
 const formSchema = z.object({
-  phoneNumber: z.string().min(1, "Phone number is required").regex(/^\+1\d{10}$/, "Must be in format: +1XXXXXXXXXX"),
+  phoneNumber: z.string().min(1, "Phone number is required").regex(/^\+1 \(\d{3}\) \d{3}-\d{4}$/, "Must be in format: +1 (XXX) XXX-XXXX"),
   personalMessage: z.string().optional(),
 })
-
-type InvitationFormValues = z.infer<typeof formSchema>
 
 interface InvitationFormProps {
   eventId: string
@@ -32,10 +31,10 @@ interface InvitationFormProps {
 export function InvitationForm({ eventId }: InvitationFormProps) {
   const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
   const [invitationLink, setInvitationLink] = useState<string>("")
-  const [error, setError] = useState<string>("")
-
-  const form = useForm<InvitationFormValues>({
+  
+  const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       phoneNumber: "",
@@ -43,29 +42,28 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
     },
   })
 
-  const onSubmit = async (data: InvitationFormValues) => {
+  const onSubmit = async (values: z.infer<typeof formSchema>) => {
     try {
       setIsLoading(true)
       setError("")
-      
+
+      // Normalize phone number to +1XXXXXXXXXX format
+      const normalizedPhone = values.phoneNumber.replace(/\D/g, "")
+      const formattedPhone = `+1${normalizedPhone.slice(-10)}`
+
       const response = await fetch(`/api/events/${eventId}/invitations`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...values,
+          phoneNumber: formattedPhone,
+        }),
       })
 
       if (!response.ok) {
-        const text = await response.text()
-        let message: string
-        try {
-          const json = JSON.parse(text)
-          message = json.error || "Failed to send invitation"
-        } catch {
-          message = text || "Failed to send invitation"
-        }
-        throw new Error(message)
+        throw new Error("Failed to send invitation")
       }
 
       const result = await response.json()
@@ -73,9 +71,8 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
       setInvitationLink(`${baseUrl}/invite/${result.token}`)
       form.reset()
       router.refresh()
-    } catch (error) {
-      console.error("Error sending invitation:", error)
-      setError(error instanceof Error ? error.message : "Failed to send invitation")
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to send invitation")
     } finally {
       setIsLoading(false)
     }
@@ -83,63 +80,64 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-          {error && (
-            <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
-              {error}
-            </div>
-          )}
-          
-          <FormField
-            control={form.control}
-            name="phoneNumber"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Phone Number</FormLabel>
-                <FormControl>
-                  <Input 
-                    {...field} 
-                    placeholder="+1XXXXXXXXXX"
-                    disabled={isLoading}
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+      <Card className="p-6">
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {error && (
+              <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+                {error}
+              </div>
             )}
-          />
 
-          <FormField
-            control={form.control}
-            name="personalMessage"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Personal Message (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    {...field}
-                    placeholder="Add a personal message to your invitation..."
-                    disabled={isLoading}
-                    className="min-h-[100px]"
-                  />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+            <FormField
+              control={form.control}
+              name="phoneNumber"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Phone Number</FormLabel>
+                  <FormControl>
+                    <PhoneInput
+                      {...field}
+                      disabled={isLoading}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="personalMessage"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Personal Message (Optional)</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      {...field}
+                      placeholder="Add a personal message to your invitation..."
+                      disabled={isLoading}
+                      className="min-h-[100px]"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <Button type="submit" disabled={isLoading}>
+              {isLoading ? "Sending..." : "Send Invitation"}
+            </Button>
+
+            {invitationLink && (
+              <div className="mt-4 p-4 bg-muted rounded-lg">
+                <p className="font-medium">Invitation Link:</p>
+                <p className="text-sm break-all">{invitationLink}</p>
+              </div>
             )}
-          />
-
-          <Button type="submit" disabled={isLoading}>
-            {isLoading ? "Sending..." : "Send Invitation"}
-          </Button>
-
-          {invitationLink && (
-            <div className="mt-4 p-4 bg-muted rounded-lg">
-              <p className="font-medium">Invitation Link:</p>
-              <p className="text-sm break-all">{invitationLink}</p>
-            </div>
-          )}
-        </form>
-      </Form>
+          </form>
+        </Form>
+      </Card>
 
       <div className="lg:border-l lg:pl-6">
         <ChatBox eventId={eventId} />
