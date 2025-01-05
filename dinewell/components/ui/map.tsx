@@ -1,33 +1,35 @@
 "use client"
 
-import { useLoadScript, GoogleMap, Marker, GoogleMapProps } from "@react-google-maps/api"
+import { GoogleMap, Marker, GoogleMapProps } from "@react-google-maps/api"
+import { useGoogleMaps } from "@/providers/google-maps-provider"
 
 interface MapProps extends Omit<GoogleMapProps, "onLoad" | "onUnmount"> {
-  markers?: { lat: number; lng: number }[]
+  markers?: google.maps.LatLngLiteral[]
 }
 
-// Create a singleton for the script loader
-let scriptPromise: Promise<void> | null = null
-
 export function Map({ markers = [], ...props }: MapProps) {
-  const { isLoaded } = useLoadScript({
-    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
-    // This ensures the script is only loaded once
-    preventGoogleFontsLoading: true,
-  })
+  const { isLoaded, loadError } = useGoogleMaps()
+
+  if (loadError) {
+    return (
+      <div className="flex items-center justify-center h-[300px] bg-muted rounded-lg">
+        <p className="text-muted-foreground">Failed to load map</p>
+      </div>
+    )
+  }
 
   if (!isLoaded) {
     return (
-      <div className="w-full h-[300px] bg-muted animate-pulse flex items-center justify-center">
-        <p className="text-muted-foreground">Loading map...</p>
+      <div className="flex items-center justify-center h-[300px] bg-muted rounded-lg">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   return (
     <GoogleMap {...props}>
-      {markers.map((position, idx) => (
-        <Marker key={`${position.lat}-${position.lng}-${idx}`} position={position} />
+      {markers.map((position, index) => (
+        <Marker key={index} position={position} />
       ))}
     </GoogleMap>
   )

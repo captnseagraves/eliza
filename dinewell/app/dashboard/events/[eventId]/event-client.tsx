@@ -10,14 +10,7 @@ import { InvitationForm } from "@/components/forms/invitation-form"
 import { InvitationList } from "@/components/invitation-list"
 import { EventForm } from "@/components/forms/event-form"
 import { MapPinIcon, CalendarIcon, ClockIcon, UsersIcon, PencilIcon } from "lucide-react"
-import { GoogleMap, Marker } from "@react-google-maps/api"
-
-const mapContainerStyle = {
-  width: "100%",
-  height: "300px",
-  borderRadius: "0.5rem",
-  marginTop: "1rem",
-}
+import { Map } from "@/components/ui/map"
 
 interface EventPageProps {
   params: { eventId: string }
@@ -91,17 +84,21 @@ export function EventClient({ params, event }: EventPageProps) {
                     <span>{event.location}</span>
                   </div>
                   {event.latitude && event.longitude && (
-                    <div className="rounded-md border">
-                      <GoogleMap
-                        mapContainerStyle={mapContainerStyle}
-                        center={{ lat: event.latitude, lng: event.longitude }}
-                        zoom={15}
-                      >
-                        <Marker
-                          position={{ lat: event.latitude, lng: event.longitude }}
-                        />
-                      </GoogleMap>
-                    </div>
+                    <Map
+                      center={{ lat: event.latitude, lng: event.longitude }}
+                      zoom={15}
+                      markers={[{ lat: event.latitude, lng: event.longitude }]}
+                      options={{
+                        disableDefaultUI: true,
+                        zoomControl: true,
+                      }}
+                      mapContainerStyle={{
+                        width: "100%",
+                        height: "300px",
+                        borderRadius: "0.5rem",
+                        marginTop: "1rem",
+                      }}
+                    />
                   )}
                   <div className="flex items-center space-x-2">
                     <UsersIcon className="w-5 h-5 text-gray-500" />

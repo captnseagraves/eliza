@@ -9,19 +9,9 @@ import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, For
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
-import { Autocomplete, GoogleMap, Marker } from "@react-google-maps/api"
-import { useRef, useState, useCallback } from "react"
+import { Map } from "@/components/ui/map"
+import { useRef, useState } from "react"
 import { useRouter } from "next/navigation"
-
-const mapContainerStyle = {
-  width: "100%",
-  height: "300px",
-}
-
-const defaultCenter = {
-  lat: 37.7749,
-  lng: -122.4194,
-}
 
 const eventFormSchema = z.object({
   name: z.string().min(2, {
@@ -45,11 +35,14 @@ const eventFormSchema = z.object({
 
 type EventFormValues = z.infer<typeof eventFormSchema>
 
+const defaultCenter = {
+  lat: 37.7749,
+  lng: -122.4194,
+}
+
 export default function NewEventPage() {
-  const [mapCenter, setMapCenter] = useState(defaultCenter)
-  const [markerPosition, setMarkerPosition] = useState<google.maps.LatLngLiteral | null>(null)
-  const autocompleteRef = useRef<google.maps.places.Autocomplete | null>(null)
-  const mapRef = useRef<google.maps.Map | null>(null)
+  const router = useRouter()
+  const [selectedLocation, setSelectedLocation] = useState<google.maps.LatLngLiteral | null>(null)
   
   const form = useForm<EventFormValues>({
     resolver: zodResolver(eventFormSchema),
@@ -62,13 +55,7 @@ export default function NewEventPage() {
     },
   })
 
-  const router = useRouter()
-
-  const onMapLoad = useCallback((map: google.maps.Map) => {
-    mapRef.current = map
-  }, [])
-
-  async function onSubmit(data: EventFormValues) {
+  const onSubmit = async (data: EventFormValues) => {
     try {
       const response = await fetch("/api/events", {
         method: "POST",
@@ -77,8 +64,8 @@ export default function NewEventPage() {
         },
         body: JSON.stringify({
           ...data,
-          latitude: markerPosition?.lat,
-          longitude: markerPosition?.lng,
+          latitude: selectedLocation?.lat,
+          longitude: selectedLocation?.lng,
         }),
       })
 
@@ -88,45 +75,33 @@ export default function NewEventPage() {
 
       const event = await response.json()
       router.push(`/dashboard/events/${event.id}`)
-      router.refresh()
     } catch (error) {
       console.error("Error creating event:", error)
     }
   }
 
-  const handlePlaceSelect = () => {
-    const place = autocompleteRef.current?.getPlace()
-    if (place?.formatted_address && place.geometry?.location) {
-      const lat = place.geometry.location.lat()
-      const lng = place.geometry.location.lng()
-      
-      form.setValue("location", `${place.name} - ${place.formatted_address}`)
-      form.setValue("latitude", lat)
-      form.setValue("longitude", lng)
-      
-      setMapCenter({ lat, lng })
-      setMarkerPosition({ lat, lng })
-      
-      mapRef.current?.panTo({ lat, lng })
-      mapRef.current?.setZoom(15)
-    }
+  const handleLocationSelect = (location: google.maps.LatLngLiteral) => {
+    setSelectedLocation(location)
+    // Use the Google Maps Geocoding service to get the address
+    const geocoder = new google.maps.Geocoder()
+    geocoder.geocode({ location }, (results, status) => {
+      if (status === "OK" && results?.[0]) {
+        const address = results[0].formatted_address
+        form.setValue("location", address)
+        form.setValue("latitude", location.lat)
+        form.setValue("longitude", location.lng)
+      }
+    })
   }
 
   return (
     <DashboardLayout>
-      <div className="flex flex-col gap-8">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Create New Event</h1>
-          <p className="text-muted-foreground">
-            Let me help you plan your perfect dinner gathering
-          </p>
-        </div>
-
+      <div className="container max-w-4xl py-6">
         <Card>
           <CardHeader>
-            <CardTitle>Event Details</CardTitle>
+            <CardTitle>Create New Event</CardTitle>
             <CardDescription>
-              Fill in the basic details for your dinner event.
+              Plan your next dinner event with friends
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -139,11 +114,8 @@ export default function NewEventPage() {
                     <FormItem>
                       <FormLabel>Event Name</FormLabel>
                       <FormControl>
-                        <Input placeholder="Dinner at my place" {...field} />
+                        <Input placeholder="Dinner at Che Fico" {...field} />
                       </FormControl>
-                      <FormDescription>
-                        Give your event a memorable name.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
@@ -183,43 +155,36 @@ export default function NewEventPage() {
                   control={form.control}
                   name="location"
                   render={({ field }) => (
-                    <FormItem className="space-y-4">
+                    <FormItem>
                       <FormLabel>Location</FormLabel>
                       <FormControl>
-                        <Autocomplete
-                          onLoad={(autocomplete) => {
-                            autocompleteRef.current = autocomplete
-                          }}
-                          onPlaceChanged={handlePlaceSelect}
-                          options={{ types: ["establishment", "geocode"] }}
-                        >
-                          <Input
-                            placeholder="Search for a location..."
-                            {...field}
-                          />
-                        </Autocomplete>
+                        <Input placeholder="Enter venue address" {...field} />
                       </FormControl>
-                      <div className="rounded-md overflow-hidden border">
-                        <GoogleMap
-                          mapContainerStyle={mapContainerStyle}
-                          center={mapCenter}
-                          zoom={13}
-                          onLoad={onMapLoad}
-                        >
-                          {markerPosition && (
-                            <Marker
-                              position={markerPosition}
-                            />
-                          )}
-                        </GoogleMap>
-                      </div>
-                      <FormDescription>
-                        Search for a restaurant or address
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
+
+                <div className="space-y-4">
+                  <label className="text-sm font-medium">Select Location on Map</label>
+                  <Map
+                    center={selectedLocation || defaultCenter}
+                    markers={selectedLocation ? [selectedLocation] : []}
+                    zoom={selectedLocation ? 15 : 12}
+                    options={{
+                      disableDefaultUI: false,
+                      zoomControl: true,
+                      streetViewControl: false,
+                      mapTypeControl: true,
+                    }}
+                    onClick={handleLocationSelect}
+                    mapContainerStyle={{
+                      width: "100%",
+                      height: "300px",
+                      borderRadius: "0.5rem",
+                    }}
+                  />
+                </div>
 
                 <FormField
                   control={form.control}
@@ -228,15 +193,11 @@ export default function NewEventPage() {
                     <FormItem>
                       <FormLabel>Description</FormLabel>
                       <FormControl>
-                        <Textarea 
-                          placeholder="Tell your guests about the dinner..."
-                          className="min-h-[100px]"
+                        <Textarea
+                          placeholder="Tell your guests about the event..."
                           {...field}
                         />
                       </FormControl>
-                      <FormDescription>
-                        Provide details about the dinner, dress code, or anything else your guests should know.
-                      </FormDescription>
                       <FormMessage />
                     </FormItem>
                   )}

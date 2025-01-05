@@ -1,8 +1,8 @@
 import { Inter } from "next/font/google"
 import "./globals.css"
 import { ClerkProvider } from "@clerk/nextjs"
-import Script from "next/script"
 import { Providers } from "@/providers"
+import { GoogleMapsProvider } from "@/providers/google-maps-provider"
 
 const inter = Inter({ subsets: ["latin"] })
 
@@ -11,20 +11,22 @@ export const metadata = {
   description: "Your personal social organizer",
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   return (
     <ClerkProvider>
-      <html lang="en">
+      <html lang="en" suppressHydrationWarning>
         <head>
-          <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/components/prism-core.min.js" />
-          <Script src="https://cdn.jsdelivr.net/npm/prismjs@1/plugins/autoloader/prism-autoloader.min.js" />
-          <Script
-            src={`https://maps.googleapis.com/maps/api/js?key=${process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY}&libraries=places`}
-          />
+          <link rel="icon" href="/favicon.ico" />
         </head>
         <body className={inter.className}>
           <Providers>
-            {children}
+            <GoogleMapsProvider>
+              {children}
+            </GoogleMapsProvider>
           </Providers>
         </body>
       </html>

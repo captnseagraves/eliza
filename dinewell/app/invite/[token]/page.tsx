@@ -28,11 +28,6 @@ interface Invitation {
   }
 }
 
-const mapContainerStyle = {
-  width: "100%",
-  height: "300px",
-}
-
 export default function InvitePage() {
   const params = useParams()
   const [invitation, setInvitation] = useState<Invitation | null>(null)
@@ -52,27 +47,34 @@ export default function InvitePage() {
     setShowVerification(true)
   }
 
-  const handleVerified = async (phoneNumber: string) => {
+  const handleVerificationSuccess = async (phone: string) => {
     if (!pendingAction) return
 
+    setIsLoading(true)
+    setError("")
+
     try {
-      setIsLoading(true)
-      const response = await fetch(`/api/invite/${params.token}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status: pendingAction, phoneNumber }),
+      const response = await fetch(`/api/invite/${params.token}/respond`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          status: pendingAction,
+          phone,
+        }),
       })
 
       if (!response.ok) {
-        throw new Error("Failed to update response")
+        throw new Error("Failed to update invitation status")
       }
 
       const updatedInvitation = await response.json()
       setInvitation(updatedInvitation)
+      setShowVerification(false)
       setPendingAction(null)
-    } catch (error) {
-      console.error("Error updating response:", error)
-      setError("Failed to update response")
+    } catch (err) {
+      setError("Failed to update invitation status. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -80,25 +82,27 @@ export default function InvitePage() {
 
   if (!invitation) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-pulse text-2xl text-muted-foreground">
-          Preparing your invitation...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto"></div>
+          <p className="mt-4 text-muted-foreground">Loading invitation...</p>
         </div>
       </div>
     )
   }
 
+  const hasResponded = invitation.status !== "PENDING"
   const center = invitation.event.latitude && invitation.event.longitude
     ? { lat: invitation.event.latitude, lng: invitation.event.longitude }
-    : { lat: 37.7749, lng: -122.4194 }
+    : { lat: 37.7749, lng: -122.4194 } // Default to San Francisco
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-muted">
-      <div className="container max-w-4xl py-10 px-4 space-y-8">
-        <div className="text-center mb-8">
+    <div className="min-h-screen bg-muted/30 py-12 px-4">
+      <div className="max-w-2xl mx-auto space-y-8">
+        <div className="text-center">
           <Image
             src="/logo.png"
-            alt="Mister Dinewell"
+            alt="Dinewell"
             width={120}
             height={120}
             className="mx-auto mb-4"
@@ -139,72 +143,71 @@ export default function InvitePage() {
                   <h2 className="text-xl font-semibold">Location</h2>
                 </div>
                 <p className="text-muted-foreground">{invitation.event.location}</p>
-                <div className="h-[300px] rounded-lg overflow-hidden">
+                {center && (
                   <Map
                     center={center}
                     zoom={15}
                     markers={[center]}
-                    mapContainerStyle={mapContainerStyle}
+                    mapContainerStyle={{
+                      width: "100%",
+                      height: "300px",
+                      borderRadius: "0.5rem",
+                      overflow: "hidden",
+                    }}
                     options={{
                       disableDefaultUI: true,
                       zoomControl: true,
+                      streetViewControl: false,
                     }}
                   />
-                </div>
+                )}
               </div>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Utensils className="w-5 h-5 text-primary" />
-                  <h2 className="text-xl font-semibold">Details</h2>
+              {invitation.event.description && (
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <Utensils className="w-5 h-5 text-primary" />
+                    <h2 className="text-xl font-semibold">Details</h2>
+                  </div>
+                  <p className="text-muted-foreground whitespace-pre-line">
+                    {invitation.event.description}
+                  </p>
                 </div>
-                <p className="text-muted-foreground whitespace-pre-wrap">
-                  {invitation.event.description}
-                </p>
-              </div>
+              )}
             </div>
 
-            {invitation.status === "PENDING" ? (
-              <div className="space-y-4">
-                {error && (
-                  <div className="text-sm text-destructive text-center">
-                    {error}
-                  </div>
-                )}
-                <div className="flex gap-4 justify-center">
-                  <Button
-                    onClick={() => handleActionClick("ACCEPTED")}
-                    disabled={isLoading}
-                    size="lg"
-                    className="w-32 bg-primary hover:bg-primary/90"
-                  >
-                    Accept
-                  </Button>
-                  <Button
-                    onClick={() => handleActionClick("DECLINED")}
-                    variant="outline"
-                    disabled={isLoading}
-                    size="lg"
-                    className="w-32"
-                  >
-                    Decline
-                  </Button>
-                </div>
+            {!hasResponded && (
+              <div className="flex gap-4 justify-center pt-4">
+                <Button
+                  onClick={() => handleActionClick("DECLINED")}
+                  variant="outline"
+                  disabled={isLoading}
+                >
+                  Decline
+                </Button>
+                <Button
+                  onClick={() => handleActionClick("ACCEPTED")}
+                  disabled={isLoading}
+                >
+                  Accept
+                </Button>
               </div>
-            ) : (
-              <div className="text-center space-y-2">
-                <p className="text-lg font-medium text-primary">
-                  You have {invitation.status.toLowerCase()} this invitation
-                </p>
-              </div>
+            )}
+
+            {error && (
+              <p className="text-destructive text-center">{error}</p>
             )}
           </div>
         </Card>
       </div>
+
       <VerificationModal
         open={showVerification}
-        onOpenChange={setShowVerification}
-        onVerified={handleVerified}
+        onClose={() => {
+          setShowVerification(false)
+          setPendingAction(null)
+        }}
+        onSuccess={handleVerificationSuccess}
       />
     </div>
   )
