@@ -2,16 +2,16 @@ import { NextRequest, NextResponse } from "next/server"
 import { getAuth } from "@clerk/nextjs/server"
 
 export async function POST(
-  req: NextRequest,
-  context: { params: { eventId: string } }
+  request: NextRequest,
+  { params }: { params: { eventId: string } }
 ) {
   try {
-    const { userId } = getAuth(req)
+    const { userId } = getAuth(request)
     if (!userId) {
       return new NextResponse("Unauthorized", { status: 401 })
     }
 
-    const { text, roomId } = await req.json()
+    const { text, roomId } = await request.json()
 
     // TODO: Integrate with the agent system
     // For now, returning a mock response in Mr. Dinewell's style
