@@ -48,3 +48,4 @@ tsup.config.bundled_*.mjs
 
 .do
 dinewell-setup.sh
+dinewell-setup-backup.sh
