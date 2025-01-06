@@ -1,9 +1,9 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { getAuth } from "@clerk/nextjs/server"
 
 export async function POST(
-  req: Request,
-  { params }: { params: { eventId: string } }
+  req: NextRequest,
+  context: { params: { eventId: string } }
 ) {
   try {
     const { userId } = getAuth(req)
