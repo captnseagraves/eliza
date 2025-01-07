@@ -35,6 +35,9 @@ export async function POST(
         console.log("4. Finding invitation");
         const invitation = await prisma.invitation.findUnique({
             where: { invitationToken: token },
+            include: {
+                event: true,
+            },
         });
 
         if (!invitation) {
@@ -50,6 +53,9 @@ export async function POST(
                 data: {
                     status,
                     respondedAt: new Date(),
+                },
+                include: {
+                    event: true,
                 },
             });
             console.log("7. Update successful:", updated);

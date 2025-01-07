@@ -69,8 +69,8 @@ export default function InvitePage() {
         throw new Error("Failed to update invitation status")
       }
 
-      const result = await response.json()
-      setInvitation(result.data)
+      const updatedInvitation = await response.json()
+      setInvitation(updatedInvitation)
       setShowVerification(false)
       setPendingAction(null)
     } catch (err) {
@@ -179,18 +179,51 @@ export default function InvitePage() {
             {!hasResponded && (
               <div className="flex gap-4 justify-center pt-4">
                 <Button
+                  onClick={() => handleActionClick("ACCEPTED")}
+                  disabled={isLoading}
+                >
+                  Accept
+                </Button>
+                <Button
                   onClick={() => handleActionClick("DECLINED")}
                   variant="outline"
                   disabled={isLoading}
                 >
                   Decline
                 </Button>
-                <Button
-                  onClick={() => handleActionClick("ACCEPTED")}
-                  disabled={isLoading}
-                >
-                  Accept
-                </Button>
+              </div>
+            )}
+
+            {invitation.status === "ACCEPTED" && (
+              <div className="text-center space-y-4 pt-4">
+                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
+                  <h3 className="text-xl font-semibold text-primary mb-2">
+                    Splendid! You're attending this event
+                  </h3>
+                  <p className="text-muted-foreground">
+                    I look forward to your company on {format(new Date(invitation.event.date), "MMMM d")} at {formatEventTime(invitation.event.time)}. 
+                    I shall send a reminder as the date approaches.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-4 italic">
+                    - Mister Dinewell
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {invitation.status === "DECLINED" && (
+              <div className="text-center space-y-4 pt-4">
+                <div className="p-4 bg-muted/50 rounded-lg border border-muted">
+                  <h3 className="text-xl font-semibold text-muted-foreground mb-2">
+                    Response Received
+                  </h3>
+                  <p className="text-muted-foreground">
+                    I understand you won't be able to attend. Perhaps we shall have the pleasure of your company at a future gathering.
+                  </p>
+                  <p className="text-sm text-muted-foreground mt-4 italic">
+                    - Mister Dinewell
+                  </p>
+                </div>
               </div>
             )}
 
