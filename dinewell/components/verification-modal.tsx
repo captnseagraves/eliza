@@ -20,8 +20,8 @@ import { PhoneInput } from "@/components/ui/phone-input"
 
 interface VerificationModalProps {
   open: boolean
-  onOpenChange: (open: boolean) => void
-  onVerified: (phoneNumber: string) => void
+  onClose: () => void
+  onSuccess: (data: { phoneNumber: string }) => void
 }
 
 const phoneSchema = z.object({
@@ -38,8 +38,8 @@ type CodeFormValues = z.infer<typeof codeSchema>
 
 export function VerificationModal({
   open,
-  onOpenChange,
-  onVerified,
+  onClose,
+  onSuccess,
 }: VerificationModalProps) {
   const [verificationStep, setVerificationStep] = useState<"phone" | "code">("phone")
   const [isLoading, setIsLoading] = useState(false)
@@ -99,6 +99,9 @@ export function VerificationModal({
       const normalizedPhone = data.phoneNumber.replace(/\D/g, "")
       const formattedPhone = `+1${normalizedPhone.slice(-10)}`
 
+      console.log('Sending verification check request to:', '/api/verify/check')
+      console.log('With data:', { phoneNumber: formattedPhone, code: data.code })
+
       const response = await fetch("/api/verify/check", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -114,8 +117,8 @@ export function VerificationModal({
         throw new Error(responseData.error || "Invalid verification code")
       }
 
-      onVerified(formattedPhone)
-      onOpenChange(false)
+      onSuccess({ phoneNumber: formattedPhone })
+      onClose()
     } catch (error) {
       setError(error instanceof Error ? error.message : "Failed to verify code")
     } finally {
@@ -124,7 +127,7 @@ export function VerificationModal({
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Verify Your Phone Number</DialogTitle>
@@ -170,19 +173,28 @@ export function VerificationModal({
                 </div>
               )}
 
+              <div className="text-sm text-muted-foreground mb-4">
+                Enter the verification code sent to {phoneNumber}
+              </div>
+
               <FormField
                 control={codeForm.control}
                 name="code"
                 render={({ field }) => (
-                  <FormItem>
+                  <FormItem className="space-y-1">
                     <FormLabel>Verification Code</FormLabel>
                     <FormControl>
                       <Input
                         {...field}
                         type="text"
+                        pattern="[0-9]*"
+                        inputMode="numeric"
                         maxLength={6}
-                        placeholder="Enter 6-digit code"
+                        placeholder="000000"
                         disabled={isLoading}
+                        className="text-center tracking-[1em] text-lg font-mono"
+                        autoComplete="one-time-code"
+                        autoFocus
                       />
                     </FormControl>
                     <FormMessage />
@@ -190,7 +202,11 @@ export function VerificationModal({
                 )}
               />
 
-              <Button type="submit" disabled={isLoading} className="w-full">
+              <Button 
+                type="submit" 
+                disabled={isLoading} 
+                className="w-full"
+              >
                 {isLoading ? "Verifying..." : "Verify"}
               </Button>
             </form>

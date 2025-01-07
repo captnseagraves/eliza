@@ -47,7 +47,7 @@ export default function InvitePage() {
     setShowVerification(true)
   }
 
-  const handleVerificationSuccess = async (phone: string) => {
+  const handleVerificationSuccess = async (data: { phoneNumber: string }) => {
     if (!pendingAction) return
 
     setIsLoading(true)
@@ -61,7 +61,7 @@ export default function InvitePage() {
         },
         body: JSON.stringify({
           status: pendingAction,
-          phone,
+          phone: data.phoneNumber,
         }),
       })
 
@@ -69,8 +69,8 @@ export default function InvitePage() {
         throw new Error("Failed to update invitation status")
       }
 
-      const updatedInvitation = await response.json()
-      setInvitation(updatedInvitation)
+      const result = await response.json()
+      setInvitation(result.data)
       setShowVerification(false)
       setPendingAction(null)
     } catch (err) {

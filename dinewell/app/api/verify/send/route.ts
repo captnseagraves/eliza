@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 
 const client = twilio(
@@ -6,7 +6,7 @@ const client = twilio(
   process.env.TWILIO_AUTH_TOKEN
 );
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const { phoneNumber } = await request.json();
 
@@ -20,7 +20,7 @@ export async function POST(request: Request) {
     // Normalize phone number to +1XXXXXXXXXX format for Twilio
     const normalizedPhone = phoneNumber.replace(/\D/g, "")
     if (!normalizedPhone.match(/^1?\d{10}$/)) {
-      return new NextResponse("Invalid phone number format", { status: 400 })
+      return NextResponse.json({ error: "Invalid phone number format" }, { status: 400 })
     }
     
     const twilioPhone = `+1${normalizedPhone.slice(-10)}`
