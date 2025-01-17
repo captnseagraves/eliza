@@ -2,7 +2,7 @@
     "name": "Mister Dinewell",
     "plugins": [],
     "people": [],
-    "clients": ["twitter"],
+    "clients": [],
     "modelProvider": "openai",
     "settings": {
         "secrets": {},
