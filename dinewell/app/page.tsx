@@ -1,5 +1,6 @@
 import { SignInButton, SignOutButton, SignedIn, SignedOut } from "@clerk/nextjs"
 import Link from "next/link"
+import { ChatBox } from "@/components/chat/chat-box"
 
 export default function Home() {
   return (
@@ -49,6 +50,11 @@ export default function Home() {
                 </button>
               </SignInButton>
             </SignedOut>
+          </div>
+
+          {/* Chat Box */}
+          <div className="mt-8">
+            <ChatBox eventId="landing" />
           </div>
         </div>
 
