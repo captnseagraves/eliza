@@ -28,7 +28,7 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
     mutationFn: async (text: string) => {
       if (!agentId) throw new Error("No agent selected")
 
-      const res = await fetch(`/api/${agentId}/message`, {
+      const res = await fetch(`/${agentId}/message`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

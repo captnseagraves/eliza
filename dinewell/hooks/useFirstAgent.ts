@@ -13,7 +13,7 @@ export function useFirstAgent() {
   const { data: agentId, isLoading, error } = useQuery({
     queryKey: ["firstAgent"],
     queryFn: async () => {
-      const res = await fetch("/api/agents")
+      const res = await fetch("/agents")
       if (!res.ok) {
         throw new Error("Failed to fetch agents")
       }
