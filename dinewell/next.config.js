@@ -38,11 +38,15 @@ const nextConfig = {
   async rewrites() {
     return [
       {
-        source: '/api/agents',
+        source: '/agents',
         destination: 'http://localhost:8080/agents',
       },
       {
-        source: '/api/:agentId/message',
+        source: '/agents/:path*',
+        destination: 'http://localhost:8080/agents/:path*',
+      },
+      {
+        source: '/:agentId/message',
         destination: 'http://localhost:8080/:agentId/message',
       }
     ]
