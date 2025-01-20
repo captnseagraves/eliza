@@ -8,7 +8,10 @@ handle_error() {
 
 trap 'handle_error $LINENO' ERR
 
-echo "Restarting Dinewell applications..."
+echo "Starting application restart..."
+
+# Navigate to app directory
+cd ~/app || exit
 
 # Backup environment files
 echo "Backing up environment files..."
@@ -17,41 +20,41 @@ cp ~/app/.env ~/env-backup/.env
 cp ~/app/dinewell/.env ~/env-backup/dinewell.env
 cp ~/app/dinewell/.env.local ~/env-backup/dinewell.env.local
 
+
+# Check for new commits
+echo "Checking for new commits..."
+git fetch
+if [ $(git rev-parse HEAD) != $(git rev-parse @{u}) ]; then
+    echo "New commits found. Pulling changes..."
+    git pull origin dinewell
+else
+    echo "No new commits. Exiting."
+    exit 0
+fi
+
 # Stop PM2 processes
 echo "Stopping PM2 processes..."
 pm2 delete all || true
-
-# Pull latest changes
-echo "Pulling latest changes..."
-cd ~/app
-git pull origin dinewell
-
-# Restore environment files
-echo "Restoring environment files..."
-cp ~/env-backup/.env ~/app/.env
-cp ~/env-backup/dinewell.env ~/app/dinewell/.env
-cp ~/env-backup/dinewell.env.local ~/app/dinewell/.env.local
 
 # Install dependencies
 echo "Installing dependencies..."
 pnpm install
 
-# Build the applications
+# Build applications
 echo "Building applications..."
-cd ~/app
 export NODE_OPTIONS="--max-old-space-size=2048"
 pnpm run build --filter=!eliza-docs
 
-# Build dinewell app
-cd dinewell
-pnpm install
+# Generate Prisma client and migrate database
+cd dinewell || exit
+echo "Generating Prisma client and migrating database..."
 npx prisma generate
-NEXT_TELEMETRY_DISABLED=1 npx next build
+pnpm prisma migrate deploy
 
-# Start applications with PM2
-echo "Starting applications..."
+# Restart applications with PM2
+echo "Restarting applications with PM2..."
 cd ~/app
 pm2 start ecosystem.config.js
 pm2 save
 
-echo "Restart complete! Check the logs using 'pm2 logs'"
+echo "Restart complete!"

@@ -108,21 +108,21 @@ export default function InvitePage() {
             className="mx-auto mb-4"
           />
           <h2 className="text-lg font-medium text-muted-foreground">
-            Mister Dinewell Presents
+            The Spirit of Dinner Presents
           </h2>
         </div>
 
         <Card className="p-8 shadow-lg border-2">
           <div className="space-y-8">
             <div className="space-y-3 text-center">
-              <h1 className="text-4xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+              <h1 className="text-4xl font-bold text-rose-600 mb-4">
                 {invitation.event.name}
               </h1>
               <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <CalendarDays className="w-4 h-4" />
+                <CalendarDays className="text-rose-600 w-4 h-4" />
                 <p>{format(new Date(invitation.event.date), "MMMM d, yyyy")}</p>
                 <span>•</span>
-                <Clock className="w-4 h-4" />
+                <Clock className="text-rose-600 w-4 h-4" />
                 <p>{format(new Date(`2000-01-01T${invitation.event.time}`), "h:mm a")}</p>
               </div>
             </div>
@@ -139,7 +139,7 @@ export default function InvitePage() {
             <div className="space-y-6">
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-primary" />
+                  <MapPin className="text-rose-600 w-5 h-5" />
                   <h2 className="text-xl font-semibold">Location</h2>
                 </div>
                 <p className="text-muted-foreground">{invitation.event.location}</p>
@@ -166,7 +166,7 @@ export default function InvitePage() {
               {invitation.event.description && (
                 <div className="space-y-4">
                   <div className="flex items-center gap-2">
-                    <Utensils className="w-5 h-5 text-primary" />
+                    <Utensils className="text-rose-600 w-5 h-5" />
                     <h2 className="text-xl font-semibold">Details</h2>
                   </div>
                   <p className="text-muted-foreground whitespace-pre-line">
@@ -179,12 +179,14 @@ export default function InvitePage() {
             {!hasResponded && (
               <div className="flex gap-4 justify-center pt-4">
                 <Button
+                  className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition"
                   onClick={() => handleActionClick("ACCEPTED")}
                   disabled={isLoading}
                 >
                   Accept
                 </Button>
                 <Button
+                  className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition"
                   onClick={() => handleActionClick("DECLINED")}
                   variant="outline"
                   disabled={isLoading}
@@ -196,8 +198,8 @@ export default function InvitePage() {
 
             {invitation.status === "ACCEPTED" && (
               <div className="text-center space-y-4 pt-4">
-                <div className="p-4 bg-primary/10 rounded-lg border border-primary/20">
-                  <h3 className="text-xl font-semibold text-primary mb-2">
+                <div className="p-4 bg-rose-100 rounded-lg border border-rose-200">
+                  <h3 className="text-xl font-semibold text-rose-600 mb-2">
                     Splendid! You're attending this event
                   </h3>
                   <p className="text-muted-foreground">
@@ -205,7 +207,7 @@ export default function InvitePage() {
                     I shall send a reminder as the date approaches.
                   </p>
                   <p className="text-sm text-muted-foreground mt-4 italic">
-                    - Mister Dinewell
+                    - The Spirit of Dinner
                   </p>
                 </div>
               </div>
@@ -221,7 +223,7 @@ export default function InvitePage() {
                     I understand you won't be able to attend. Perhaps we shall have the pleasure of your company at a future gathering.
                   </p>
                   <p className="text-sm text-muted-foreground mt-4 italic">
-                    - Mister Dinewell
+                    - The Spirit of Dinner
                   </p>
                 </div>
               </div>

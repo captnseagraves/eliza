@@ -23,7 +23,7 @@ export function ChatMessages({ messages }: ChatMessagesProps) {
           ))
         ) : (
           <div className="text-center text-muted-foreground">
-            Greetings! I am Mister Dinewell, at your service. How may I assist you with your dinner arrangements?
+            Greetings! I am the Spirit of Dinner, at your service. How may I assist you with your dinner arrangements?
           </div>
         )}
       </div>

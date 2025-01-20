@@ -27,7 +27,7 @@ export function ChatInput({ onSend, isLoading }: ChatInputProps) {
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message to Mister Dinewell..."
+            placeholder="Type your message to the Spirit of Dinner..."
             className="flex-1"
             disabled={isLoading}
           />

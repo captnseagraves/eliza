@@ -220,7 +220,7 @@ export function EventForm({
 
         {error && <p className="text-sm text-red-500">{error}</p>}
 
-        <Button type="submit" disabled={isLoading}>
+        <Button type="submit" disabled={isLoading} className="bg-rose-600 text-white hover:bg-rose-700 transition">
           {isLoading ? "Saving..." : (eventId ? "Update Event" : "Create Event")}
         </Button>
       </form>

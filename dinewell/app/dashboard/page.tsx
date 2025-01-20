@@ -65,7 +65,7 @@ export default function DashboardPage() {
               )}
               <div className="flex justify-end">
                 <Link href={`/dashboard/events/${event.id}`}>
-                  <Button>View Event</Button>
+                  <Button className="bg-rose-600 text-white hover:bg-rose-700 transition">View Event</Button>
                 </Link>
               </div>
             </div>
@@ -78,7 +78,7 @@ export default function DashboardPage() {
           <CardHeader>
             <CardTitle>No Events</CardTitle>
             <CardDescription>
-              {upcomingEvents.length === 0 
+              {upcomingEvents.length === 0
                 ? "Create your first event to get started"
                 : "No events found in this category"}
             </CardDescription>
@@ -98,7 +98,7 @@ export default function DashboardPage() {
               Manage your dinner events and invitations
             </p>
           </div>
-          <Button onClick={() => router.push("/dashboard/events/new")}>
+          <Button className="bg-rose-600 text-white hover:bg-rose-700 transition" onClick={() => router.push("/dashboard/events/new")}>
             Create New Event
           </Button>
         </div>

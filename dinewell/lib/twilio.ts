@@ -22,7 +22,14 @@ export const sendInvitationSMS = async ({
   invitationToken: string
 }) => {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL
-  const message = `🍽️ You're invited to ${eventName}!\n\n${personalMessage}\n\nView invitation and RSVP:\n${baseUrl}/invite/${invitationToken}\n\n- Mister Dinewell`
+  const message = `🍽️ You're invited to ${eventName}!
+
+${personalMessage}
+
+View invitation and RSVP:
+${baseUrl}/invite/${invitationToken}
+
+- The Spirit of Dinner`
 
   try {
     await twilioClient.messages.create({

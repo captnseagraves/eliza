@@ -33,7 +33,7 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
   const [invitationLink, setInvitationLink] = useState<string>("")
-  
+
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -125,9 +125,13 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
               )}
             />
 
-            <Button type="submit" disabled={isLoading}>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition"
+            >
               {isLoading ? "Sending..." : "Send Invitation"}
-            </Button>
+            </button>
 
             {invitationLink && (
               <div className="mt-4 p-4 bg-muted rounded-lg">
@@ -140,7 +144,8 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
       </Card>
 
       <div className="lg:border-l lg:pl-6">
-        <ChatBox eventId={eventId} />
+      <ChatBox eventId="event-management"
+              initialMessage="Let's organize a memorable gathering. How may I assist you with your event planning and invitations today?"/>
       </div>
     </div>
   )

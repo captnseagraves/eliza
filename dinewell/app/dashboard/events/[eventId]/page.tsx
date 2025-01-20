@@ -55,6 +55,10 @@ export default async function EventPage({
         invitations: event.invitations,
         _count: event._count,
       }}
-    />
+    >
+      <button className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition">
+        Send Invitation
+      </button>
+    </EventClient>
   )
 }

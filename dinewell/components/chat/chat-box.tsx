@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useFirstAgent } from "@/hooks/useFirstAgent"
 
@@ -106,7 +105,7 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
                 <div
                   className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
                     message.user === "user"
-                      ? "bg-primary text-primary-foreground"
+                      ? "bg-rose-600 text-white"
                       : "bg-muted"
                   }`}
                 >
@@ -116,7 +115,7 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
             ))
           ) : (
             <div className="text-center text-muted-foreground">
-              Greetings! I am Mister Dinewell, at your service. How may I assist you with this dinner invitation?
+              Greetings! I am the Spirit of Dinner, at your service. How may I assist you with your dinner arrangements?
             </div>
           )}
         </div>
@@ -131,9 +130,13 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
             className="flex-1"
             disabled={mutation.isPending}
           />
-          <Button type="submit" size="sm" disabled={mutation.isPending || !agentId}>
+          <button
+            type="submit"
+            className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition"
+            disabled={mutation.isPending || !agentId}
+          >
             {mutation.isPending ? "..." : "Send"}
-          </Button>
+          </button>
         </form>
       </div>
     </Card>

@@ -159,7 +159,7 @@ export function VerificationModal({
                 )}
               />
 
-              <Button type="submit" disabled={isLoading} className="w-full">
+              <Button type="submit" disabled={isLoading} className="w-full bg-rose-600 text-white hover:bg-rose-700 transition">
                 {isLoading ? "Sending..." : "Send Code"}
               </Button>
             </form>
@@ -205,7 +205,7 @@ export function VerificationModal({
               <Button 
                 type="submit" 
                 disabled={isLoading} 
-                className="w-full"
+                className="w-full bg-rose-600 text-white hover:bg-rose-700 transition"
               >
                 {isLoading ? "Verifying..." : "Verify"}
               </Button>

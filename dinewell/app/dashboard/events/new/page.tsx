@@ -222,7 +222,7 @@ export default function NewEventPage() {
                   )}
                 />
 
-                <Button type="submit">Create Event</Button>
+                <Button type="submit" className="bg-rose-600 text-white hover:bg-rose-700 transition">Create Event</Button>
               </form>
             </Form>
           </CardContent>
