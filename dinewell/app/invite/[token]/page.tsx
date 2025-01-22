@@ -4,13 +4,15 @@ import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useParams } from "next/navigation"
 import { useState, useEffect } from "react"
-import { format } from "date-fns"
-import { CalendarDays, MapPin, Clock, Utensils } from "lucide-react"
+import { format, addHours, parseISO } from "date-fns"
+import { CalendarDays, MapPin, Clock, Utensils, Twitter, Calendar, Map as MapIcon } from "lucide-react"
 import Image from "next/image"
+import Link from "next/link"
 import { VerificationModal } from "@/components/verification-modal"
 import { ChatBox } from "@/components/chat/chat-box"
 import { Map } from "@/components/ui/map"
 import { formatEventTime } from "@/lib/utils"
+import { AddToCalendarButton } from 'add-to-calendar-button-react'
 
 interface Invitation {
   id: string
@@ -27,6 +29,9 @@ interface Invitation {
     longitude: number | null
   }
 }
+
+const CONTRACT_ADDRESS = "0xc4ecaf115cbce3985748c58dccfc4722fef8247c"
+const DEX_SCREENER_URL = `https://dexscreener.com/base/${CONTRACT_ADDRESS}`
 
 export default function InvitePage() {
   const params = useParams()
@@ -97,143 +102,114 @@ export default function InvitePage() {
     : { lat: 37.7749, lng: -122.4194 } // Default to San Francisco
 
   return (
-    <div className="min-h-screen bg-muted/30 py-12 px-4">
-      <div className="max-w-2xl mx-auto space-y-8">
-        <div className="text-center">
-          <Image
-            src="/logo.png"
-            alt="Dinewell"
-            width={120}
-            height={120}
-            className="mx-auto mb-4"
-          />
-          <h2 className="text-lg font-medium text-muted-foreground">
-            The Spirit of Dinner Presents
-          </h2>
+    <div className="min-h-screen bg-gradient-to-b from-rose-50 to-white">
+      {/* Header */}
+      <header className="border-b">
+        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
+          <Link href="/" className="text-2xl font-bold hover:opacity-80 transition-opacity">
+            dinner.fun
+          </Link>
+          <Link
+            href={DEX_SCREENER_URL}
+            className="text-sm text-muted-foreground hover:text-primary transition-colors hidden md:block"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {CONTRACT_ADDRESS}
+          </Link>
+          <div className="flex items-center gap-4">
+            <Link
+              href="https://x.com/misterdinewell"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-80 transition-opacity"
+            >
+              <Twitter className="h-5 w-5" />
+            </Link>
+            <Link
+              href={DEX_SCREENER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-80 transition-opacity"
+            >
+              <Image
+                src="/dexscreener.png"
+                alt="Dexscreener"
+                width={20}
+                height={20}
+              />
+            </Link>
+          </div>
         </div>
+      </header>
 
-        <Card className="p-8 shadow-lg border-2">
-          <div className="space-y-8">
-            <div className="space-y-3 text-center">
-              <h1 className="text-4xl font-bold text-rose-600 mb-4">
-                {invitation.event.name}
-              </h1>
-              <div className="flex items-center justify-center gap-2 text-muted-foreground">
-                <CalendarDays className="text-rose-600 w-4 h-4" />
-                <p>{format(new Date(invitation.event.date), "MMMM d, yyyy")}</p>
-                <span>•</span>
-                <Clock className="text-rose-600 w-4 h-4" />
-                <p>{format(new Date(`2000-01-01T${invitation.event.time}`), "h:mm a")}</p>
-              </div>
-            </div>
-
-            <div className="flex justify-center py-6">
-              <div className="w-[95%]">
-                <ChatBox 
-                  eventId={invitation.event.id}
-                  initialMessage={invitation.personalMessage}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              <div className="space-y-4">
-                <div className="flex items-center gap-2">
-                  <MapPin className="text-rose-600 w-5 h-5" />
-                  <h2 className="text-xl font-semibold">Location</h2>
-                </div>
-                <p className="text-muted-foreground">{invitation.event.location}</p>
-                {center && (
-                  <Map
-                    center={center}
-                    zoom={15}
-                    markers={[center]}
-                    mapContainerStyle={{
-                      width: "100%",
-                      height: "300px",
-                      borderRadius: "0.5rem",
-                      overflow: "hidden",
-                    }}
-                    options={{
-                      disableDefaultUI: true,
-                      zoomControl: true,
-                      streetViewControl: false,
-                    }}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-5xl mx-auto">
+          {invitation && (
+            <>
+              <div className="space-y-8">
+                <div>
+                  <ChatBox
+                    eventId={invitation.event.id}
+                    initialMessage={invitation.personalMessage}
                   />
+                </div>
+
+                {/* Initial State: Only RSVP Buttons */}
+                {!hasResponded && (
+                  <div className="flex gap-4 justify-center">
+                    <Button
+                      className="w-32 bg-rose-600 hover:bg-rose-700"
+                      onClick={() => handleActionClick("ACCEPTED")}
+                    >
+                      Accept
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-32"
+                      onClick={() => handleActionClick("DECLINED")}
+                    >
+                      Decline
+                    </Button>
+                  </div>
+                )}
+
+                {/* Post-RSVP State: Success Message and Action Buttons */}
+                {invitation.status === "ACCEPTED" && (
+                  <div className="space-y-6">
+                    <p className="text-center text-green-600 font-medium">
+                      Thank you for accepting! I look forward to your company.
+                    </p>
+
+                    <div className="flex justify-center gap-4">
+                      <AddToCalendarButton
+                        name={invitation.event.name}
+                        description={invitation.event.description || "Join us for dinner!"}
+                        startDate={format(new Date(invitation.event.date), 'yyyy-MM-dd')}
+                        startTime={format(parseISO(`2000-01-01T${invitation.event.time}`), 'HH:mm')}
+                        endTime={format(addHours(parseISO(`2000-01-01T${invitation.event.time}`), 2), 'HH:mm')}
+                        location={invitation.event.location}
+                        options={['Google']}
+                        styleLight="--btn-background: #e11d48; --btn-text: #fff;"
+                        label="Add to Calendar"
+                      />
+                      <button
+                        className="location-button"
+                        onClick={() => {
+                          const mapUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(invitation.event.location)}`;
+                          window.open(mapUrl, '_blank');
+                        }}
+                      >
+                        <MapIcon className="h-4 w-4" />
+                        Location
+                      </button>
+                    </div>
+                  </div>
                 )}
               </div>
-
-              {invitation.event.description && (
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2">
-                    <Utensils className="text-rose-600 w-5 h-5" />
-                    <h2 className="text-xl font-semibold">Details</h2>
-                  </div>
-                  <p className="text-muted-foreground whitespace-pre-line">
-                    {invitation.event.description}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {!hasResponded && (
-              <div className="flex gap-4 justify-center pt-4">
-                <Button
-                  className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition"
-                  onClick={() => handleActionClick("ACCEPTED")}
-                  disabled={isLoading}
-                >
-                  Accept
-                </Button>
-                <Button
-                  className="px-4 py-2 bg-gray-400 text-white rounded hover:bg-gray-500 transition"
-                  onClick={() => handleActionClick("DECLINED")}
-                  variant="outline"
-                  disabled={isLoading}
-                >
-                  Decline
-                </Button>
-              </div>
-            )}
-
-            {invitation.status === "ACCEPTED" && (
-              <div className="text-center space-y-4 pt-4">
-                <div className="p-4 bg-rose-100 rounded-lg border border-rose-200">
-                  <h3 className="text-xl font-semibold text-rose-600 mb-2">
-                    Splendid! You're attending this event
-                  </h3>
-                  <p className="text-muted-foreground">
-                    I look forward to your company on {format(new Date(invitation.event.date), "MMMM d")} at {formatEventTime(invitation.event.time)}. 
-                    I shall send a reminder as the date approaches.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-4 italic">
-                    - The Spirit of Dinner
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {invitation.status === "DECLINED" && (
-              <div className="text-center space-y-4 pt-4">
-                <div className="p-4 bg-muted/50 rounded-lg border border-muted">
-                  <h3 className="text-xl font-semibold text-muted-foreground mb-2">
-                    Response Received
-                  </h3>
-                  <p className="text-muted-foreground">
-                    I understand you won't be able to attend. Perhaps we shall have the pleasure of your company at a future gathering.
-                  </p>
-                  <p className="text-sm text-muted-foreground mt-4 italic">
-                    - The Spirit of Dinner
-                  </p>
-                </div>
-              </div>
-            )}
-
-            {error && (
-              <p className="text-destructive text-center">{error}</p>
-            )}
-          </div>
-        </Card>
+            </>
+          )}
+        </div>
       </div>
 
       <VerificationModal
@@ -246,4 +222,10 @@ export default function InvitePage() {
       />
     </div>
   )
+}
+
+function addHours(date: Date, hours: number) {
+  const result = new Date(date)
+  result.setHours(result.getHours() + hours)
+  return result
 }
