@@ -77,7 +77,10 @@ export function VerificationModal({
       const response = await fetch("/api/verify/send", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ phoneNumber: formattedPhone }),
+        body: JSON.stringify({ 
+          phoneNumber: formattedPhone,
+          inviteToken 
+        }),
       })
 
       const responseData = await response.json()
@@ -109,7 +112,8 @@ export function VerificationModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           phoneNumber: formattedPhone,
-          code: data.code
+          code: data.code,
+          inviteToken
         }),
       })
 
@@ -135,8 +139,8 @@ export function VerificationModal({
 
   return (
     <Dialog open={open} onOpenChange={onClose}>
-      <DialogOverlay />
-      <DialogContent className="sm:max-w-md border-0 p-0 gap-0">
+      <DialogOverlay className="bg-black/80" />
+      <DialogContent className="sm:max-w-md border-0 p-0 gap-0" closeButton={false}>
         <div className="p-6">
           <DialogHeader>
             <DialogTitle className="text-center text-xl font-semibold">

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
+import { prisma } from "@/lib/prisma";
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
@@ -8,11 +9,11 @@ const client = twilio(
 
 export async function POST(request: NextRequest) {
   try {
-    const { phoneNumber } = await request.json();
+    const { phoneNumber, inviteToken } = await request.json();
 
-    if (!phoneNumber) {
+    if (!phoneNumber || !inviteToken) {
       return NextResponse.json(
-        { error: "Phone number is required" },
+        { error: "Phone number and invitation token are required" },
         { status: 400 }
       );
     }
@@ -24,6 +25,27 @@ export async function POST(request: NextRequest) {
     }
     
     const twilioPhone = `+1${normalizedPhone.slice(-10)}`
+
+    // Check if phone number matches invitation
+    const invitation = await prisma.invitation.findUnique({
+      where: {
+        invitationToken: inviteToken,
+      },
+    });
+
+    if (!invitation) {
+      return NextResponse.json(
+        { error: "Invalid invitation token" },
+        { status: 404 }
+      );
+    }
+
+    if (invitation.phoneNumber !== twilioPhone) {
+      return NextResponse.json(
+        { error: "Phone number does not match invitation" },
+        { status: 403 }
+      );
+    }
 
     const verification = await client.verify.v2
       .services(process.env.TWILIO_VERIFY_SERVICE_ID!)

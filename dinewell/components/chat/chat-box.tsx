@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, forwardRef, useImperativeHandle, useRef, useEffect } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -16,12 +16,25 @@ interface ChatBoxProps {
   initialMessage?: string
 }
 
-export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
+export interface ChatBoxRef {
+  sendMessage: (text: string) => void
+}
+
+export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, initialMessage }, ref) => {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>(
     initialMessage ? [{ text: initialMessage, user: "assistant" }] : []
   )
   const { agentId, isLoading, error } = useFirstAgent()
+  const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
+  }
+
+  useEffect(() => {
+    scrollToBottom()
+  }, [messages])
 
   const mutation = useMutation({
     mutationFn: async (text: string) => {
@@ -50,8 +63,8 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
     },
   })
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    e?.preventDefault()
     if (!input.trim() || !agentId) return
 
     // Add user message immediately
@@ -66,9 +79,21 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
     setInput("")
   }
 
+  useImperativeHandle(ref, () => ({
+    sendMessage: (text: string) => {
+      const userMessage: Message = {
+        text,
+        user: "user",
+      }
+      setMessages((prev) => [...prev, userMessage])
+      mutation.mutate(text)
+      setInput("")
+    }
+  }))
+
   if (isLoading) {
     return (
-      <Card className="flex flex-col h-[500px] w-full shadow-lg items-center justify-center">
+      <Card className="flex flex-col h-[427px] w-full shadow-lg items-center justify-center">
         <p className="text-muted-foreground">Connecting to Mr. Dinewell...</p>
       </Card>
     )
@@ -76,7 +101,7 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
 
   if (error) {
     return (
-      <Card className="flex flex-col h-[500px] w-full shadow-lg items-center justify-center">
+      <Card className="flex flex-col h-[427px] w-full shadow-lg items-center justify-center">
         <p className="text-destructive">Unable to connect to Mr. Dinewell. Please ensure the agent server is running.</p>
       </Card>
     )
@@ -84,7 +109,7 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
 
   if (!agentId) {
     return (
-      <Card className="flex flex-col h-[500px] w-full shadow-lg items-center justify-center">
+      <Card className="flex flex-col h-[427px] w-full shadow-lg items-center justify-center">
         <p className="text-muted-foreground">No agents available. Please start the agent server.</p>
       </Card>
     )
@@ -92,7 +117,7 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
 
   return (
     <Card className="w-full shadow-md">
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 h-[320px]">
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 h-[427px]">
         <div className="space-y-4">
           {messages.length > 0 ? (
             messages.map((message, index) => (
@@ -103,10 +128,10 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
                 }`}
               >
                 <div
-                  className={`max-w-[80%] rounded-lg px-4 py-2 whitespace-pre-wrap ${
+                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
                     message.user === "user"
                       ? "bg-rose-600 text-white"
-                      : "bg-muted"
+                      : "bg-gray-100"
                   }`}
                 >
                   {message.text}
@@ -114,31 +139,34 @@ export function ChatBox({ eventId, initialMessage }: ChatBoxProps) {
               </div>
             ))
           ) : (
-            <div className="text-center text-muted-foreground">
-              Greetings! I am the Spirit of Dinner, at your service. How may I assist you with your dinner arrangements?
+            <div className="flex items-center justify-center h-full">
+              <p className="text-muted-foreground text-center">
+                No messages yet. Start a conversation with the Spirit of Dinner!
+              </p>
             </div>
           )}
+          <div ref={messagesEndRef} />
         </div>
       </div>
-
-      <div className="border-t p-3 bg-background rounded-b-lg">
-        <form onSubmit={handleSubmit} className="flex gap-2">
+      <form onSubmit={handleSubmit} className="p-4 border-t">
+        <div className="flex gap-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type your message..."
-            className="flex-1"
+            placeholder="Type a message..."
             disabled={mutation.isPending}
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition"
-            disabled={mutation.isPending || !agentId}
+            className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors disabled:opacity-50"
+            disabled={mutation.isPending}
           >
-            {mutation.isPending ? "..." : "Send"}
+            Send
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
     </Card>
   )
-}
+})
+
+ChatBox.displayName = "ChatBox"

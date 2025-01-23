@@ -14,16 +14,16 @@ export async function POST(
     console.log("1. Starting POST request handler");
     try {
         // Get token from params
-        const token = await params.token;
+        const token = params.token;
         console.log("2. Token:", token);
 
         // Parse body
         const body = await request.json();
         console.log("3. Body:", body);
-        const { status, phone } = body;
+        const { status, phoneNumber } = body;
 
         // Validate input
-        if (!status || !phone) {
+        if (!status || !phoneNumber) {
             return new NextResponse("Missing required fields", { status: 400 });
         }
 
@@ -44,6 +44,11 @@ export async function POST(
             return new NextResponse("Not found", { status: 404 });
         }
         console.log("5. Found invitation:", invitation);
+
+        // Verify phone number matches invitation
+        if (invitation.phoneNumber !== phoneNumber) {
+            return new NextResponse("Phone number does not match invitation", { status: 403 });
+        }
 
         // Update invitation
         console.log("6. Updating invitation");

@@ -1,22 +1,14 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-interface Context {
-    params: {
-        token: Promise<string>;
-    };
-}
-
 export async function GET(
     request: Request,
     { params }: { params: { token: string } }
 ) {
     try {
-        const token = await params.token;
-        
         const invitation = await prisma.invitation.findUnique({
             where: {
-                invitationToken: token,
+                invitationToken: params.token,
             },
             include: {
                 event: true,
@@ -34,14 +26,13 @@ export async function GET(
     }
 }
 
-export async function PATCH(
+export async function POST(
     request: Request,
     { params }: { params: { token: string } }
 ) {
     try {
-        const token = await params.token;
         const body = await request.json()
-        const { status } = body
+        const { status, phoneNumber } = body
 
         if (!["ACCEPTED", "DECLINED"].includes(status)) {
             return new NextResponse("Invalid status", { status: 400 })
@@ -49,7 +40,7 @@ export async function PATCH(
 
         const invitation = await prisma.invitation.update({
             where: {
-                invitationToken: token,
+                invitationToken: params.token,
             },
             data: {
                 status,
@@ -62,7 +53,7 @@ export async function PATCH(
 
         return NextResponse.json(invitation)
     } catch (error) {
-        console.error("[INVITATION_PATCH]", error)
+        console.error("[INVITATION_POST]", error)
         return new NextResponse("Internal error", { status: 500 })
     }
 }

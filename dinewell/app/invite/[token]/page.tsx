@@ -3,17 +3,17 @@
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { useParams } from "next/navigation"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { format, addHours, parseISO } from "date-fns"
 import { CalendarDays, MapPin, Clock, Utensils, Twitter, Calendar, Map as MapIcon } from "lucide-react"
 import Image from "next/image"
 import Link from "next/link"
+import Cookies from "js-cookie"
 import { VerificationModal } from "@/components/verification-modal"
-import { ChatBox } from "@/components/chat/chat-box"
+import { ChatBox, ChatBoxRef } from "@/components/chat/chat-box"
 import { Map } from "@/components/ui/map"
 import { formatEventTime } from "@/lib/utils"
 import { AddToCalendarButton } from 'add-to-calendar-button-react'
-import Cookies from 'js-cookie'
 
 interface Invitation {
   id: string
@@ -36,59 +36,90 @@ const DEX_SCREENER_URL = `https://dexscreener.com/base/${CONTRACT_ADDRESS}`
 
 export default function InvitePage() {
   const params = useParams()
+  const token = params?.token as string
   const [invitation, setInvitation] = useState<Invitation | null>(null)
   const [isLoading, setIsLoading] = useState(false)
+  const [isRsvpLoading, setIsRsvpLoading] = useState(false)
   const [isVerified, setIsVerified] = useState(false)
   const [verifiedPhone, setVerifiedPhone] = useState("")
   const [error, setError] = useState("")
+  const chatRef = useRef<ChatBoxRef>(null)
 
   useEffect(() => {
+    if (!token) return;
+
+    const fetchInvitation = async () => {
+      try {
+        setIsLoading(true)
+        const response = await fetch(`/api/invite/${token}`)
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch invitation")
+        }
+
+        const data = await response.json()
+        setInvitation(data)
+      } catch (error) {
+        console.error("Error fetching invitation:", error)
+        setError("Failed to load invitation")
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchInvitation()
+  }, [token])
+
+  useEffect(() => {
+    if (!token) return;
+
     // Check for existing verification
-    const token = params.token as string
     const verifiedPhoneNumber = Cookies.get(`verified_invite_${token}`)
 
     if (verifiedPhoneNumber) {
       setIsVerified(true)
       setVerifiedPhone(verifiedPhoneNumber)
     }
-
-    // Fetch invitation data
-    fetch(`/api/invite/${token}`)
-      .then((res) => res.json())
-      .then(setInvitation)
-  }, [params.token])
+  }, [token])
 
   const handleVerificationSuccess = async (data: { phoneNumber: string }) => {
     setVerifiedPhone(data.phoneNumber)
     setIsVerified(true)
   }
 
-  const handleRsvp = async (status: "ACCEPTED" | "DECLINED") => {
-    setIsLoading(true)
+  const handleRSVP = async (status: "ACCEPTED" | "DECLINED") => {
+    if (!verifiedPhone) {
+      setError("Please verify your phone number first")
+      return
+    }
+
     setError("")
+    setIsRsvpLoading(true)
 
     try {
-      const response = await fetch(`/api/invite/${params.token}/respond`, {
+      const response = await fetch(`/api/invite/${token}/respond`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           status,
-          phone: verifiedPhone,
+          phoneNumber: verifiedPhone,
         }),
       })
 
+      const data = await response.json()
+
       if (!response.ok) {
-        throw new Error("Failed to update invitation status")
+        throw new Error(data.error || "Failed to update RSVP")
       }
 
-      const updatedInvitation = await response.json()
-      setInvitation(updatedInvitation)
-    } catch (err) {
-      setError("Failed to update invitation status. Please try again.")
+      setInvitation(data)
+    } catch (error) {
+      console.error("Error updating RSVP:", error)
+      setError(error instanceof Error ? error.message : "Failed to update RSVP")
     } finally {
-      setIsLoading(false)
+      setIsRsvpLoading(false)
     }
   }
 
@@ -119,7 +150,7 @@ export default function InvitePage() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            $DINNER - {CONTRACT_ADDRESS}
+            {CONTRACT_ADDRESS}
           </a>
           <div className="flex items-center gap-4">
             <Link
@@ -155,6 +186,7 @@ export default function InvitePage() {
                 <div className="space-y-8">
                   <div>
                     <ChatBox
+                      ref={chatRef}
                       eventId={invitation.event.id}
                       initialMessage={invitation.personalMessage}
                     />
@@ -165,18 +197,18 @@ export default function InvitePage() {
                     <div className="flex gap-4 justify-center">
                       <Button
                         className="w-32 bg-rose-600 hover:bg-rose-700"
-                        onClick={() => handleRsvp("ACCEPTED")}
-                        disabled={!isVerified}
+                        onClick={() => handleRSVP("ACCEPTED")}
+                        disabled={!isVerified || isRsvpLoading}
                       >
-                        Accept
+                        {isRsvpLoading ? "Updating..." : "Accept"}
                       </Button>
                       <Button
                         variant="outline"
                         className="w-32"
-                        onClick={() => handleRsvp("DECLINED")}
-                        disabled={!isVerified}
+                        onClick={() => handleRSVP("DECLINED")}
+                        disabled={!isVerified || isRsvpLoading}
                       >
-                        Decline
+                        {isRsvpLoading ? "Updating..." : "Decline"}
                       </Button>
                     </div>
                   )}
@@ -186,7 +218,7 @@ export default function InvitePage() {
                     <div className="space-y-6">
                       <p className="text-center text-green-600 font-medium">
                         You're going to dinner!<br />
-                        Feel free to ask me any questions before the gathering.
+                        Feel free to ask me any questions you have before the gathering.
                       </p>
 
                       <div className="flex justify-center gap-4">
@@ -222,17 +254,46 @@ export default function InvitePage() {
                     </p>
                   )}
                 </div>
+                <div className="mt-4">
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    {[
+                      "What can the Spirit of Dinner do?",
+                      "What are the details of the dinner?",
+                      "What should I wear?",
+                      "What's on the menu?",
+                      "Who else is going to be there?",
+                      "Schedule a dinner for me and my friends"
+                    ].map((question, index) => (
+                      <div
+                        key={index}
+                        onClick={() => chatRef.current?.sendMessage(question)}
+                        className="bg-gray-100 rounded-full px-4 py-2 text-sm text-muted-foreground hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap"
+                        role="button"
+                        tabIndex={0}
+                        onKeyDown={(e) => e.key === 'Enter' && chatRef.current?.sendMessage(question)}
+                      >
+                        {question}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </>
             )}
           </div>
         </div>
+
+        {error && (
+          <div className="p-3 text-sm text-destructive bg-destructive/10 rounded-md">
+            {error}
+          </div>
+        )}
 
         {!isVerified && (
           <VerificationModal
             open={true}
             onClose={() => {}} // Cannot be closed
             onSuccess={handleVerificationSuccess}
-            inviteToken={params.token as string}
+            inviteToken={token}
           />
         )}
       </main>

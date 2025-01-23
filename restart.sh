@@ -25,8 +25,12 @@ cp ~/app/dinewell/.env.local ~/env-backup/dinewell.env.local
 echo "Checking for new commits..."
 git fetch
 if [ $(git rev-parse HEAD) != $(git rev-parse @{u}) ]; then
-    echo "New commits found. Pulling changes..."
+    echo "New commits found. Stashing local changes..."
+    git stash
+    echo "Pulling changes..."
     git pull origin dinewell
+    echo "Reapplying local changes..."
+    git stash pop || true
 else
     echo "No new commits. Exiting."
     exit 0
@@ -45,7 +49,6 @@ echo "Building applications..."
 export NODE_OPTIONS="--max-old-space-size=2048"
 pnpm run build --filter=!eliza-docs
 
-# Generate Prisma client and migrate database
 cd dinewell || exit
 echo "Generating Prisma client and migrating database..."
 npx prisma generate
