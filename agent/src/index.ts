@@ -44,6 +44,12 @@ import readline from "readline";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 
+import { userDataProvider } from "./userDataProvider.js";
+import { userDataEvaluator } from "./userDataEvaluator.js";
+
+import { factEvaluator } from "./fact.js";
+import { factsProvider } from "./facts.js";
+
 const __filename = fileURLToPath(import.meta.url); // get the resolved path to the file
 const __dirname = path.dirname(__filename); // get the name of the directory
 
@@ -59,12 +65,15 @@ export function parseArguments(): {
 } {
     try {
         // Find the actual arguments after any pnpm/npm specific args
-        const args = process.argv.slice(2).filter(arg => 
-            arg.includes('character') || 
-            arg.startsWith('--') || 
-            arg.startsWith('-')
-        );
-        
+        const args = process.argv
+            .slice(2)
+            .filter(
+                (arg) =>
+                    arg.includes("character") ||
+                    arg.startsWith("--") ||
+                    arg.startsWith("-")
+            );
+
         return yargs(args)
             .option("character", {
                 type: "string",
@@ -362,7 +371,8 @@ export function createAgent(
         databaseAdapter: db,
         token,
         modelProvider: character.modelProvider,
-        evaluators: [],
+        evaluators: [factEvaluator, userDataEvaluator],
+        providers: [factsProvider, userDataProvider],
         character,
         plugins: [
             bootstrapPlugin,
@@ -396,7 +406,6 @@ export function createAgent(
             getSecret(character, "WALLET_SECRET_SALT") ? teePlugin : null,
             getSecret(character, "ALCHEMY_API_KEY") ? goatPlugin : null,
         ].filter(Boolean),
-        providers: [],
         actions: [],
         services: [],
         managers: [],

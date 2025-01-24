@@ -257,12 +257,14 @@ export default function InvitePage() {
                 <div className="mt-4">
                   <div className="flex flex-wrap gap-2 justify-center">
                     {[
+                      "What are you?",
                       "What can the Spirit of Dinner do?",
                       "What are the details of the dinner?",
                       "What should I wear?",
                       "What's on the menu?",
                       "Who else is going to be there?",
-                      "Schedule a dinner for me and my friends"
+                      "Schedule a dinner for me and my friends",
+                      "What is $DINE?"
                     ].map((question, index) => (
                       <div
                         key={index}
