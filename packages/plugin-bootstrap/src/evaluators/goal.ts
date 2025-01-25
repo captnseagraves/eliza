@@ -76,7 +76,7 @@ async function handler(
     });
 
     // Parse the JSON response to extract goal updates
-    const updates = parseJsonArrayFromText(response);
+    const updates = parseJsonArrayFromText(response) as Partial<Goal>[];
 
     // get goals
     goalsData = await getGoals({
@@ -96,8 +96,7 @@ async function handler(
                 if (update.objectives) {
                     for (const objective of objectives) {
                         const updatedObjective = update.objectives.find(
-                            (o: Objective) =>
-                                o.description === objective.description
+                            (o) => o.description === objective.description
                         );
                         if (updatedObjective) {
                             objective.completed = updatedObjective.completed;
@@ -108,17 +107,11 @@ async function handler(
                 return {
                     ...goal,
                     ...update,
-                    objectives: [
-                        ...goal.objectives,
-                        ...(update?.objectives || []),
-                    ],
+                    objectives: objectives,
                 }; // Merging the update into the existing goal
-            } else {
-                console.warn("**** ID NOT FOUND");
             }
-            return null; // No update for this goal
-        })
-        .filter(Boolean);
+            return goal; // No update for this goal
+        });
 
     // Update goals in the database
     for (const goal of updatedGoals) {

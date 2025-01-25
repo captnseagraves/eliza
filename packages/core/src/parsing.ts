@@ -58,36 +58,29 @@ Your response must include the JSON block.`;
  * @returns An array parsed from the JSON string if successful; otherwise, null.
  */
 export function parseJsonArrayFromText(text: string) {
-    let jsonData = null;
+    console.log("Parsing text:", text);
 
-    const jsonBlockMatch = text.match(jsonBlockPattern);
-
-    if (jsonBlockMatch) {
-        try {
-            jsonData = JSON.parse(jsonBlockMatch[1]);
-        } catch (e) {
-            console.error("Error parsing JSON:", e);
-            return null;
-        }
-    } else {
-        const arrayPattern = /\[\s*{[\s\S]*?}\s*\]/;
-        const arrayMatch = text.match(arrayPattern);
-
-        if (arrayMatch) {
-            try {
-                jsonData = JSON.parse(arrayMatch[0]);
-            } catch (e) {
-                console.error("Error parsing JSON:", e);
-                return null;
-            }
-        }
+    // First try to find a JSON array in the text using regex
+    const jsonArrayRegex = /\[([\s\S]*?)\]/;
+    const match = text.match(jsonArrayRegex);
+    
+    if (!match) {
+        console.log("No JSON array found in text");
+        return [];
     }
 
-    if (Array.isArray(jsonData)) {
-        return jsonData;
-    } else {
-        return null;
-    }
+    const arrayContent = match[1];
+    console.log("Array content:", arrayContent);
+
+    // Split by commas and clean up each item
+    const items = arrayContent
+        .split(",")
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0)
+        .map((item) => item.replace(/['"]/g, ""));
+
+    console.log("Parsed items:", items);
+    return items;
 }
 
 /**
@@ -103,6 +96,8 @@ export function parseJsonArrayFromText(text: string) {
 export function parseJSONObjectFromText(
     text: string
 ): Record<string, any> | null {
+    console.log(" [parseJSONObjectFromText] Parsing text:", text);
+
     let jsonData = null;
 
     const jsonBlockMatch = text.match(jsonBlockPattern);
@@ -133,10 +128,13 @@ export function parseJSONObjectFromText(
         jsonData !== null &&
         !Array.isArray(jsonData)
     ) {
+        console.log(" [parseJSONObjectFromText] Parsed object:", jsonData);
         return jsonData;
     } else if (typeof jsonData === "object" && Array.isArray(jsonData)) {
+        console.log(" [parseJSONObjectFromText] Parsed array, trying to parse as array:", jsonData);
         return parseJsonArrayFromText(text);
     } else {
+        console.log(" [parseJSONObjectFromText] No JSON object found in text");
         return null;
     }
 }

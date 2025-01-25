@@ -570,35 +570,30 @@ export class AgentRuntime implements IAgentRuntime {
      * @returns The results of the evaluation.
      */
     async evaluate(message: Memory, state?: State, didRespond?: boolean) {
-        const evaluatorPromises = this.evaluators.map(
-            async (evaluator: Evaluator) => {
-                elizaLogger.log("Evaluating", evaluator.name);
-                if (!evaluator.handler) {
-                    return null;
-                }
-                if (!didRespond && !evaluator.alwaysRun) {
-                    return null;
-                }
-                const result = await evaluator.validate(this, message, state);
-                if (result) {
-                    return evaluator;
-                }
-                return null;
-            }
+        console.log("\n=== EVALUATOR SELECTION START ===");
+        console.log("Message:", message.content.text);
+
+        const evaluators = this.evaluators
+            .map((evaluator: Evaluator) => {
+                return evaluator.validate(this, message).then((shouldRun) => {
+                    console.log(`[${evaluator.name}] Validate result:`, shouldRun);
+                    return shouldRun ? evaluator : null;
+                });
+            });
+
+        const validEvaluators = (await Promise.all(evaluators)).filter(
+            (evaluator) => evaluator !== null
         );
 
-        const resolvedEvaluators = await Promise.all(evaluatorPromises);
-        const evaluatorsData = resolvedEvaluators.filter(Boolean);
+        console.log("\nValid evaluators:", validEvaluators.map(e => e.name));
 
-        // if there are no evaluators this frame, return
-        if (evaluatorsData.length === 0) {
+        if (validEvaluators.length === 0) {
+            console.log("No evaluators passed validation");
             return [];
         }
 
-        const evaluators = formatEvaluators(evaluatorsData as Evaluator[]);
-        const evaluatorNames = formatEvaluatorNames(
-            evaluatorsData as Evaluator[]
-        );
+        const evaluatorNames = formatEvaluatorNames(validEvaluators);
+        console.log("\nEvaluator names for LLM:", evaluatorNames);
 
         const context = composeContext({
             state: {
@@ -611,26 +606,41 @@ export class AgentRuntime implements IAgentRuntime {
                 evaluationTemplate,
         });
 
+        console.log("\nSending to LLM with context:", context);
+
         const result = await generateText({
             runtime: this,
             context,
             modelClass: ModelClass.SMALL,
         });
 
+        console.log("\nLLM raw response:", result);
+
         const parsedResult = parseJsonArrayFromText(
             result
         ) as unknown as string[];
 
-        this.evaluators
-            .filter((evaluator: Evaluator) =>
-                parsedResult?.includes(evaluator.name)
-            )
-            .forEach((evaluator: Evaluator) => {
-                if (!evaluator?.handler) return;
+        console.log("\nParsed evaluators to run:", parsedResult);
 
-                evaluator.handler(this, message);
-            });
+        const evaluatorsToRun = this.evaluators.filter((evaluator: Evaluator) => {
+            const shouldRun = parsedResult?.includes(evaluator.name);
+            console.log(`Should run ${evaluator.name}?`, shouldRun);
+            return shouldRun;
+        });
 
+        console.log("\nFinal evaluators to run:", evaluatorsToRun.map(e => e.name));
+
+        evaluatorsToRun.forEach((evaluator: Evaluator) => {
+            if (!evaluator?.handler) {
+                console.log(`No handler for ${evaluator.name}`);
+                return;
+            }
+
+            console.log(`Running handler for ${evaluator.name}`);
+            evaluator.handler(this, message);
+        });
+
+        console.log("=== EVALUATOR SELECTION END ===\n");
         return parsedResult;
     }
 

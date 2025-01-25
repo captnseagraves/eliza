@@ -54,6 +54,8 @@ Response should be a JSON object array inside a JSON markdown block. Correct res
 async function handler(runtime: IAgentRuntime, message: Memory) {
     const state = await runtime.composeState(message);
 
+    console.log("FACT_HANDLER");
+
     const { agentId, roomId } = state;
 
     const context = composeContext({
@@ -119,6 +121,8 @@ export const factEvaluator: Evaluator = {
 
         message: Memory
     ): Promise<boolean> => {
+        console.log("FACT_VALIDATE");
+
         const messageCount = (await runtime.messageManager.countMemories(
             message.roomId
         )) as number;

@@ -371,8 +371,8 @@ export function createAgent(
         databaseAdapter: db,
         token,
         modelProvider: character.modelProvider,
-        evaluators: [factEvaluator, userDataEvaluator],
-        providers: [factsProvider, userDataProvider],
+        evaluators: [userDataEvaluator],
+        providers: [userDataProvider],
         character,
         plugins: [
             bootstrapPlugin,

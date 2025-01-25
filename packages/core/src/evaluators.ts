@@ -28,9 +28,17 @@ Available evaluator names to include are {{evaluatorNames}}
  * @returns A string that concatenates the names of all evaluators, each enclosed in single quotes and separated by commas.
  */
 export function formatEvaluatorNames(evaluators: Evaluator[]) {
-    return evaluators
+    console.log(" [formatEvaluatorNames] Input evaluators:", evaluators.map(e => ({
+        name: e.name,
+        description: e.description
+    })));
+
+    const names = evaluators
         .map((evaluator: Evaluator) => `'${evaluator.name}'`)
         .join(",\n");
+    
+    console.log(" [formatEvaluatorNames] Formatted names for LLM:", names);
+    return names;
 }
 
 /**
@@ -39,12 +47,18 @@ export function formatEvaluatorNames(evaluators: Evaluator[]) {
  * @returns A string that concatenates the name and description of each evaluator, separated by a colon and a newline character.
  */
 export function formatEvaluators(evaluators: Evaluator[]) {
-    return evaluators
+    console.log(" [formatEvaluators] Formatting evaluators with descriptions");
+
+    const formatted = evaluators
         .map(
-            (evaluator: Evaluator) =>
-                `'${evaluator.name}: ${evaluator.description}'`
+            (evaluator: Evaluator) => {
+                const str = `'${evaluator.name}: ${evaluator.description}'`;
+                console.log(" [formatEvaluators] Formatted evaluator:", str);
+                return str;
+            }
         )
         .join(",\n");
+    return formatted;
 }
 
 /**
@@ -53,10 +67,22 @@ export function formatEvaluators(evaluators: Evaluator[]) {
  * @returns A string that presents each evaluator example in a structured format, including context, messages, and outcomes, with placeholders replaced by generated names.
  */
 export function formatEvaluatorExamples(evaluators: Evaluator[]) {
-    return evaluators
+    console.log(" [formatEvaluatorExamples] Starting example formatting for:", 
+        evaluators.map(e => e.name));
+
+    const examples = evaluators
         .map((evaluator) => {
+            if (!evaluator.examples || evaluator.examples.length === 0) {
+                console.log(` [formatEvaluatorExamples] No examples for ${evaluator.name}`);
+                return "";
+            }
+
+            console.log(` [formatEvaluatorExamples] Found ${evaluator.examples.length} examples for ${evaluator.name}`);
+            
             return evaluator.examples
-                .map((example) => {
+                .map((example, idx) => {
+                    console.log(` [formatEvaluatorExamples] Processing example ${idx + 1} for ${evaluator.name}`);
+                    
                     const exampleNames = Array.from({ length: 5 }, () =>
                         uniqueNamesGenerator({ dictionaries: [names] })
                     );
@@ -86,20 +112,24 @@ export function formatEvaluatorExamples(evaluators: Evaluator[]) {
                                     name
                                 );
                             });
-                            return (
-                                messageString +
-                                (message.content.action
-                                    ? ` (${message.content.action})`
-                                    : "")
-                            );
+                            const actionStr = message.content.action
+                                ? ` (${message.content.action})`
+                                : "";
+                            console.log(` [formatEvaluatorExamples] Message:`, messageString + actionStr);
+                            return messageString + actionStr;
                         })
                         .join("\n");
 
-                    return `Context:\n${formattedContext}\n\nMessages:\n${formattedMessages}\n\nOutcome:\n${formattedOutcome}`;
+                    const formatted = `Context:\n${formattedContext}\n\nMessages:\n${formattedMessages}\n\nOutcome:\n${formattedOutcome}`;
+                    console.log(` [formatEvaluatorExamples] Formatted example for ${evaluator.name}:`, formatted);
+                    return formatted;
                 })
                 .join("\n\n");
         })
         .join("\n\n");
+
+    console.log(" [formatEvaluatorExamples] Final examples:", examples);
+    return examples;
 }
 
 /**
