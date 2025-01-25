@@ -48,4 +48,4 @@ tsup.config.bundled_*.mjs
 
 .do
 setup.sh
-setup-backup.sh
+setup-backup.shvenv/
