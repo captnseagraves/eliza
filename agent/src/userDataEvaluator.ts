@@ -55,12 +55,17 @@ Recent Messages: {{recentMessages}}
    - Implicit information ("Working as an engineer in Seattle")
    - Contextual references ("Yes, that's where I live")
    - Corrections ("Actually, I meant San Francisco")
+   - RSVP Changes:
+     * Positive: "yes", "I'll come", "I'll be there", "I want to go", "I'd love to"
+     * Negative: "no", "I can't come", "I won't be there", "I don't want to go"
+     * Always override previous RSVP status when a new one is detected
 
 4. Pay special attention to:
    - Name: Full names only, no nicknames
    - Location: City/State/Country
    - Occupation: Current job or profession
-   - RSVP: Clear attendance confirmation/declination
+   - RSVP: Set as 'attending' for positive responses, 'declined' for negative ones
+   - When user expresses not wanting to attend, ALWAYS set rsvpStatus with override=true
 
 # OUTPUT FORMAT
 Return a JSON object with this structure:
@@ -77,6 +82,23 @@ Return a JSON object with this structure:
     "references_previous": boolean
   }
 }
+
+# EXAMPLES
+1. "I don't want to go to dinner"
+   {
+     "fields": {
+       "rsvpStatus": { "value": "declined", "override": true }
+     },
+     "context": { "implicit": false, "requires_confirmation": false, "references_previous": false }
+   }
+
+2. "I have no name"
+   {
+     "fields": {
+       "name": { "value": "", "override": true }
+     },
+     "context": { "implicit": false, "requires_confirmation": false, "references_previous": false }
+   }
 
 # EXAMPLES
 Input: "I'm John Smith, and I'd love to attend the dinner"
@@ -114,51 +136,61 @@ async function validate(
             userId: message.userId,
         });
 
-        // // 1. Skip if message is from agent
-        // if (message.userId === runtime.agentId) {
-        //     console.log("⏭️ [UserDataEvaluator] Skipping agent message");
-        //     return false;
-        // }
+        // 1. Skip if message is from agent
+        if (message.userId === runtime.agentId) {
+            console.log("⏭️ [UserDataEvaluator] Skipping agent message");
+            return false;
+        }
 
-        // // 2. Skip if message is too short (less than 2 words)
-        // const messageText = message.content.text || "";
-        // if (messageText.trim().split(/\s+/).length < 2) {
-        //     console.log("⏭️ [UserDataEvaluator] Message too short");
-        //     return false;
-        // }
+        // 2. Skip if message is too short (less than 2 words)
+        const messageText = message.content.text || "";
+        if (messageText.trim().split(/\s+/).length < 2) {
+            console.log("⏭️ [UserDataEvaluator] Message too short");
+            return false;
+        }
 
-        // // 3. Quick check for personal pronouns and common markers
-        // const quickMarkers =
-        //     /\b(i|my|me|yes|no|attending|attend|rsvp|dinner|live|work|name)\b/i;
-        // if (!quickMarkers.test(messageText)) {
-        //     console.log("⏭️ [UserDataEvaluator] No personal markers found");
-        //     return false;
-        // }
+        // 3. Quick check for personal pronouns and common markers
+        const quickMarkers =
+            /\b(i|my|me|yes|no|attending|attend|rsvp|dinner|live|work|name)\b/i;
+        const rsvpMarkers =
+            /\b(want|don't want|wont|won't|can't|cannot|decline|accept|yes|no)\b.*\b(go|attend|dinner|come)\b/i;
 
-        // // 4. Check if we already have complete data
-        // const userDataManager = new MemoryManager({
-        //     runtime,
-        //     tableName: "user_data",
-        // });
+        if (!quickMarkers.test(messageText) && !rsvpMarkers.test(messageText)) {
+            console.log(
+                "⏭️ [UserDataEvaluator] No personal or RSVP markers found"
+            );
+            return false;
+        }
 
-        // const existingData = await userDataManager.getMemories({
-        //     roomId: message.roomId,
-        //     count: 1,
-        //     start: 0,
-        //     end: Date.now(),
-        // });
+        // 4. Check if we already have complete data
+        const userDataManager = new MemoryManager({
+            runtime,
+            tableName: "user_data",
+        });
 
-        // if (existingData.length > 0) {
-        //     const userData = JSON.parse(
-        //         existingData[0].content.text
-        //     ) as UserData;
-        //     if (userData.isComplete) {
-        //         console.log(
-        //             "⏭️ [UserDataEvaluator] User data already complete"
-        //         );
-        //         return false;
-        //     }
-        // }
+        const existingData = await userDataManager.getMemories({
+            roomId: message.roomId,
+            count: 1,
+            start: 0,
+            end: Date.now(),
+        });
+
+        // Always process if it's an RSVP change
+        if (rsvpMarkers.test(messageText)) {
+            console.log("✅ [UserDataEvaluator] Processing RSVP change");
+            return true;
+        }
+
+        // For non-RSVP updates, check if data is complete
+        if (existingData.length > 0) {
+            const userData = JSON.parse(
+                existingData[0].content.text
+            ) as UserData;
+            console.log(
+                "📝 [UserDataEvaluator] Processing update with existing data:",
+                userData
+            );
+        }
 
         console.log("✅ [UserDataEvaluator] Message might contain user data");
         return true;
@@ -211,11 +243,16 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
         try {
             extractionResult = JSON.parse(result) as ExtractionResult;
             if (!extractionResult || !extractionResult.fields) {
-                console.log("⚠️ [UserDataEvaluator] Invalid extraction result format");
+                console.log(
+                    "⚠️ [UserDataEvaluator] Invalid extraction result format"
+                );
                 return false;
             }
         } catch (e) {
-            console.log("⚠️ [UserDataEvaluator] Failed to parse extraction result:", e);
+            console.log(
+                "⚠️ [UserDataEvaluator] Failed to parse extraction result:",
+                e
+            );
             return false;
         }
 
@@ -239,7 +276,7 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
             userData = { ...userData, ...existingData };
         }
 
-        // Only add new fields that don't exist yet
+        // Only update fields if they have a valid value
         (
             Object.entries(extractionResult.fields) as [
                 keyof UserData,
@@ -248,31 +285,43 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
         ).forEach(([key, field]) => {
             if (
                 field &&
-                !userData[key] &&
                 (key === "name" ||
                     key === "location" ||
                     key === "occupation" ||
-                    key === "rsvpStatus")
+                    key === "rsvpStatus") &&
+                field.value.trim() !== "" // Update if we have a non-empty value
             ) {
                 console.log(
-                    `📝 [UserDataEvaluator] Adding new ${key}:`,
+                    `📝 [UserDataEvaluator] ${userData[key] ? "Updating" : "Adding new"} ${key}:`,
                     field.value
                 );
                 userData[key] = field.value;
             } else {
                 console.log(
-                    `📝 [UserDataEvaluator] Preserving existing ${key}:`,
+                    `📝 [UserDataEvaluator] No new value for ${key}, keeping:`,
                     userData[key]
                 );
             }
         });
 
         // Check completion status
-        const requiredFields = ["name", "rsvpStatus"];
-        const missingRequired = requiredFields.filter(
-            (field) => !userData[field as keyof UserData]
-        );
+        const requiredFields = ["name", "rsvpStatus", "location"];
+        const missingRequired = requiredFields.filter((field) => {
+            const value = userData[field as keyof UserData];
+            return (
+                !value ||
+                (typeof value === "string" ? value.trim() === "" : false)
+            );
+        });
         userData.isComplete = missingRequired.length === 0;
+
+        // Log missing fields if any
+        if (missingRequired.length > 0) {
+            console.log(
+                "📝 [UserDataEvaluator] Missing required fields:",
+                missingRequired
+            );
+        }
 
         console.log("📊 [UserDataEvaluator] Updated user data:", {
             userData,
@@ -281,6 +330,7 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
         });
 
         // 5. Store in memory
+        const existingId = existingMemories[0]?.id;
         const userMemory = await userDataManager.addEmbeddingToMemory({
             userId: message.userId,
             agentId,
@@ -290,13 +340,20 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
             },
             roomId,
             createdAt: Date.now(),
-            id: existingMemories[0]?.id,
+            id: existingId,
         });
 
         console.log("💾 [UserDataEvaluator] Saving to memory", {
             memoryId: userMemory.id,
+            isUpdate: !!existingId,
         });
-        await userDataManager.createMemory(userMemory, true);
+
+        if (existingId) {
+            await userDataManager.removeMemory(existingId);
+            await userDataManager.createMemory(userMemory, true);
+        } else {
+            await userDataManager.createMemory(userMemory, true);
+        }
 
         return true;
     } catch (error) {
