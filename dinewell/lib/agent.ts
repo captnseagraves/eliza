@@ -11,6 +11,15 @@ interface EventContext {
     longitude?: number | null;
 }
 
+interface Agent {
+  id: string
+  name: string
+}
+
+interface AgentsResponse {
+  agents: Agent[]
+}
+
 /**
  * Formats event details into a natural language message for the agent
  */
@@ -67,4 +76,16 @@ export async function initializeAgentRoom(
         console.error('Error initializing agent chat room:', error);
         throw error;
     }
+}
+
+export async function getFirstAgentId(): Promise<string> {
+  const res = await fetch("http://localhost:8080/agents")
+  if (!res.ok) {
+    throw new Error("Failed to fetch agents")
+  }
+  const data = await res.json() as AgentsResponse
+  if (!data.agents?.length) {
+    throw new Error("No agents available")
+  }
+  return data.agents[0].id
 }
