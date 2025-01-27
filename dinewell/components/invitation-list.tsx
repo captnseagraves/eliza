@@ -1,5 +1,6 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { format } from "date-fns"
 import {
   Table,
@@ -26,17 +27,22 @@ interface InvitationListProps {
 }
 
 export function InvitationList({ invitations }: InvitationListProps) {
+  const [baseUrl, setBaseUrl] = useState("")
+
+  useEffect(() => {
+    setBaseUrl(window.location.origin)
+  }, [])
+
+  const getInviteUrl = (token: string) => {
+    return `${baseUrl}/invite/${token}`
+  }
+
   if (!invitations.length) {
     return (
       <div className="text-center text-sm text-muted-foreground">
         No invitations sent yet
       </div>
     )
-  }
-
-  const getInviteUrl = (token: string) => {
-    const baseUrl = window.location.origin
-    return `${baseUrl}/invite/${token}`
   }
 
   return (

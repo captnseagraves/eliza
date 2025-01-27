@@ -188,6 +188,7 @@ export default function InvitePage() {
                     <ChatBox
                       ref={chatRef}
                       eventId={invitation.event.id}
+                      invitationToken={token}
                       initialMessage={invitation.personalMessage}
                     />
                   </div>

@@ -100,13 +100,8 @@ export function EventClient({ params, event }: EventPageProps) {
                       }}
                     />
                   )}
-                  <div className="flex items-center space-x-2">
-                    <UsersIcon className="w-5 h-5 text-gray-500" />
-                    <span>{event._count.invitations} guests invited</span>
-                  </div>
                   {event.description && (
                     <div className="mt-4">
-                      <h3 className="font-semibold mb-2">Description</h3>
                       <p className="text-gray-600">{event.description}</p>
                     </div>
                   )}
@@ -117,7 +112,7 @@ export function EventClient({ params, event }: EventPageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Send Invitation</CardTitle>
+              <CardTitle>Send Invitations</CardTitle>
             </CardHeader>
             <CardContent>
               <InvitationForm eventId={event.id} />
@@ -126,7 +121,15 @@ export function EventClient({ params, event }: EventPageProps) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Guest List</CardTitle>
+              <div className="flex items-center justify-between">
+                <CardTitle>Guest List</CardTitle>
+                <div className="flex items-center space-x-2">
+                  <UsersIcon className="w-5 h-5 text-gray-500" />
+                  <span className="text-sm text-gray-500">
+                    {event._count.invitations} sent
+                  </span>
+                </div>
+              </div>
             </CardHeader>
             <CardContent>
               <InvitationList invitations={event.invitations} />

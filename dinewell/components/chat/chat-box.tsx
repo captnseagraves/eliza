@@ -5,6 +5,8 @@ import { useMutation } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
 import { useFirstAgent } from "@/hooks/useFirstAgent"
+import { useUser } from "@clerk/nextjs"
+import { generateHostRoomId, generateInviteRoomId } from "@/lib/room-id"
 
 interface Message {
   text: string
@@ -12,7 +14,8 @@ interface Message {
 }
 
 interface ChatBoxProps {
-  eventId: string
+  eventId?: string
+  invitationToken?: string
   initialMessage?: string
 }
 
@@ -20,12 +23,13 @@ export interface ChatBoxRef {
   sendMessage: (text: string) => void
 }
 
-export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, initialMessage }, ref) => {
+export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitationToken, initialMessage }, ref) => {
   const [input, setInput] = useState("")
   const [messages, setMessages] = useState<Message[]>(
     initialMessage ? [{ text: initialMessage, user: "assistant" }] : []
   )
   const { agentId, isLoading, error } = useFirstAgent()
+  const { user } = useUser()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -36,9 +40,25 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, initialM
     scrollToBottom()
   }, [messages])
 
+  // Generate the appropriate room ID based on context
+  const getRoomId = () => {
+    // If we have an event ID and invitation token, it's an invite chat
+    if (eventId && invitationToken) {
+      return generateInviteRoomId(eventId, invitationToken)
+    }
+    // If we have an event ID and user ID, it's a host chat
+    if (eventId && user?.id) {
+      return generateHostRoomId(eventId, user.id)
+    }
+    // Default to a generic room ID for the landing page
+    return `default-room-${agentId}`
+  }
+
   const mutation = useMutation({
     mutationFn: async (text: string) => {
       if (!agentId) throw new Error("No agent selected")
+
+      const roomId = getRoomId()
 
       const res = await fetch(`/${agentId}/message`, {
         method: "POST",
@@ -47,8 +67,8 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, initialM
         },
         body: JSON.stringify({
           text,
-          userId: "user",
-          roomId: `default-room-${agentId}`,
+          userId: user?.id || "invite",
+          roomId,
         }),
       })
 
@@ -149,17 +169,17 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, initialM
         </div>
       </div>
       <form onSubmit={handleSubmit} className="p-4 border-t">
-        <div className="flex gap-2">
+        <div className="flex space-x-2">
           <Input
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Type a message..."
-            disabled={mutation.isPending}
+            placeholder="Type your message..."
+            className="flex-1"
           />
           <button
             type="submit"
-            className="px-4 py-2 bg-rose-600 text-white rounded-md hover:bg-rose-700 transition-colors disabled:opacity-50"
-            disabled={mutation.isPending}
+            disabled={!input.trim()}
+            className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition disabled:opacity-50"
           >
             Send
           </button>
@@ -168,5 +188,3 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, initialM
     </Card>
   )
 })
-
-ChatBox.displayName = "ChatBox"

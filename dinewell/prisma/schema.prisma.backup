@@ -35,7 +35,6 @@ model Invitation {
   status          String    @default("PENDING")
   personalMessage String
   agentUserId     String?   // Nullable for backward compatibility
-  agentRoomId     String?   // Nullable for backward compatibility
   createdAt       DateTime  @default(now())
   respondedAt     DateTime?
   event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -43,5 +42,4 @@ model Invitation {
   @@index([eventId])
   @@index([invitationToken])
   @@index([agentUserId])
-  @@index([agentRoomId])
 }

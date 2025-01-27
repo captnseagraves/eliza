@@ -144,8 +144,10 @@ export function InvitationForm({ eventId }: InvitationFormProps) {
       </Card>
 
       <div className="lg:border-l lg:pl-6">
-      <ChatBox eventId="event-management"
-              initialMessage="Let's organize a memorable gathering. How may I assist you with your event planning and invitations today?"/>
+        <ChatBox 
+          eventId={eventId}
+          initialMessage="Let's organize a memorable gathering. How may I assist you with your event planning and invitations today?"
+        />
       </div>
     </div>
   )
