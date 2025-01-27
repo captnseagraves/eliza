@@ -2,7 +2,7 @@
     "name": "Spirit of Dinner",
     "plugins": [],
     "people": [],
-    "clients": ["direct"],
+    "clients": [],
     "modelProvider": "openai",
     "settings": {
         "secrets": {},

@@ -134,6 +134,7 @@ async function validate(
         console.log("🔍 [UserDataEvaluator] Starting quick validation", {
             messageId: message.id,
             userId: message.userId,
+            roomId: message.roomId
         });
 
         // 1. Skip if message is from agent
@@ -202,9 +203,19 @@ async function validate(
 
 async function handler(runtime: IAgentRuntime, message: Memory) {
     try {
-        console.log("🔍 [UserDataEvaluator] Starting handler");
+        console.log("🔍 [UserDataEvaluator] Starting handler", {
+            messageId: message.id,
+            userId: message.userId,
+            roomId: message.roomId
+        });
         const state = await runtime.composeState(message);
         const { agentId, roomId } = state;
+
+        // Log room context
+        console.log("🏠 [UserDataEvaluator] Room context:", {
+            stateRoomId: roomId,
+            messageRoomId: message.roomId
+        });
 
         // 1. Get existing user data
         const userDataManager = new MemoryManager({
@@ -327,6 +338,7 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
             userData,
             missingRequired,
             isComplete: userData.isComplete,
+            roomId: message.roomId
         });
 
         // 5. Store in memory
@@ -345,7 +357,8 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
 
         console.log("💾 [UserDataEvaluator] Saving to memory", {
             memoryId: userMemory.id,
-            isUpdate: !!existingId,
+            roomId: message.roomId,
+            isUpdate: !!existingId
         });
 
         if (existingId) {
