@@ -143,14 +143,20 @@ async function validate(
             return false;
         }
 
-        // 2. Skip if message is too short (less than 2 words)
+        // 2. Skip if message is a system message
+        if (message.content.isSystem) {
+            console.log("⏭️ [UserDataEvaluator] Skipping system message");
+            return false;
+        }
+
+        // 3. Skip if message is too short (less than 2 words)
         const messageText = message.content.text || "";
         if (messageText.trim().split(/\s+/).length < 2) {
             console.log("⏭️ [UserDataEvaluator] Message too short");
             return false;
         }
 
-        // 3. Quick check for personal pronouns and common markers
+        // 4. Quick check for personal pronouns and common markers
         const quickMarkers =
             /\b(i|my|me|yes|no|attending|attend|rsvp|dinner|live|work|name)\b/i;
         const rsvpMarkers =
@@ -163,7 +169,7 @@ async function validate(
             return false;
         }
 
-        // 4. Check if we already have complete data
+        // 5. Check if we already have complete data
         const userDataManager = new MemoryManager({
             runtime,
             tableName: "user_data",
