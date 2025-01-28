@@ -109,6 +109,11 @@ export async function POST(
                     text: eventContext,
                     userId: "system",
                     roomId: agentRoomId,
+                    isSystem: true,
+                    metadata: {
+                        type: "event_context",
+                        source: "invitation_creation"
+                    }
                 }),
             });
 
