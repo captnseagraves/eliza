@@ -53,6 +53,8 @@ export default function InvitePage() {
         setIsLoading(true)
         const response = await fetch(`/api/invite/${token}`)
 
+        console.log("token", token);
+
         if (!response.ok) {
           throw new Error("Failed to fetch invitation")
         }

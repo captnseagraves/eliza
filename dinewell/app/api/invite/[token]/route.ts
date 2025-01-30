@@ -3,12 +3,13 @@ import { prisma } from "@/lib/prisma"
 
 export async function GET(
     request: Request,
-    { params }: { params: { token: string } }
+    context: { params: { token: string } }
 ) {
     try {
+        const { token } = context.params
         const invitation = await prisma.invitation.findUnique({
             where: {
-                invitationToken: params.token,
+                invitationToken: token,
             },
             include: {
                 event: true,
@@ -28,9 +29,10 @@ export async function GET(
 
 export async function POST(
     request: Request,
-    { params }: { params: { token: string } }
+    context: { params: { token: string } }
 ) {
     try {
+        const { token } = context.params
         const body = await request.json()
         const { status, phoneNumber } = body
 
@@ -40,7 +42,7 @@ export async function POST(
 
         const invitation = await prisma.invitation.update({
             where: {
-                invitationToken: params.token,
+                invitationToken: token,
             },
             data: {
                 status,

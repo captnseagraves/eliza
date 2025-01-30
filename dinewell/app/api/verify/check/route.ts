@@ -2,12 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import twilio from "twilio";
 import { prisma } from "@/lib/prisma";
 import { generateUserIdFromPhone } from "@/lib/user-id";
-import { generateRoomId } from "@/lib/room-id";
+import { generateInviteRoomId } from "@/lib/room-id";
 
 const client = twilio(
   process.env.TWILIO_ACCOUNT_SID,
   process.env.TWILIO_AUTH_TOKEN
 );
+
+type Invitation = {
+  status: string;
+  phoneNumber: string;
+  personalMessage: string;
+  id: string;
+  createdAt: Date;
+  eventId: string;
+  invitationToken: string;
+  respondedAt: Date | null;
+  agentUserId?: string;
+  agentRoomId?: string;
+};
 
 export async function POST(request: NextRequest) {
   try {
@@ -33,8 +46,23 @@ export async function POST(request: NextRequest) {
       where: {
         invitationToken: inviteToken,
       },
-      include: {
-        event: true, // Include event to get eventId
+      select: {
+        id: true,
+        invitationToken: true,
+        phoneNumber: true,
+        eventId: true,
+        agentUserId: true,
+        agentRoomId: true,
+        event: {
+          select: {
+            id: true,
+            name: true,
+            date: true,
+            time: true,
+            location: true,
+            description: true,
+          },
+        },
       },
     });
 
@@ -59,7 +87,7 @@ export async function POST(request: NextRequest) {
     if (verification_check.status === "approved") {
       // Generate or retrieve agent user ID and room ID
       const agentUserId = invitation.agentUserId || generateUserIdFromPhone(twilioPhone);
-      const agentRoomId = invitation.agentRoomId || generateRoomId(invitation.eventId, invitation.invitationToken);
+      const agentRoomId = invitation.agentRoomId || generateInviteRoomId(invitation.eventId, invitation.invitationToken);
       
       // Update invitation with agent IDs if not already set
       if (!invitation.agentUserId || !invitation.agentRoomId) {

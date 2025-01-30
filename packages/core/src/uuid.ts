@@ -10,6 +10,13 @@ export function stringToUuid(target: string): UUID {
         throw TypeError("Value must be string");
     }
 
+    // If the input is already a valid UUID, return it as is
+    const UUID_REGEX =
+        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (UUID_REGEX.test(target)) {
+        return target.toLowerCase() as UUID;
+    }
+
     const _uint8ToHex = (ubyte: number): string => {
         const first = ubyte >> 4;
         const second = ubyte - (first << 4);

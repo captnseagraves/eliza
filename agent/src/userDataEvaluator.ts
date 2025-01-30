@@ -38,6 +38,14 @@ interface ExtractionResult {
     };
 }
 
+interface EventContext {
+    type: string;
+    source: string;
+    eventId: string;
+    invitationToken: string;
+    phoneNumber: string;
+}
+
 const EXTRACTION_TEMPLATE = `
 TASK: Extract user information from the conversation.
 
@@ -134,7 +142,7 @@ async function validate(
         console.log("🔍 [UserDataEvaluator] Starting quick validation", {
             messageId: message.id,
             userId: message.userId,
-            roomId: message.roomId
+            roomId: message.roomId,
         });
 
         // 1. Skip if message is from agent
@@ -207,12 +215,54 @@ async function validate(
     }
 }
 
+async function updateRSVPStatus(
+    roomId: string,
+    status: string
+): Promise<boolean> {
+    try {
+        console.log("🔄 [UserDataEvaluator] Updating RSVP status:", {
+            roomId,
+            status,
+        });
+
+        // Get the base URL from environment variables, defaulting to localhost if not set
+        const baseUrl =
+            process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+
+        const response = await fetch(
+            `${baseUrl}/api/invite/room/${roomId}/respond`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ status }),
+            }
+        );
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log("✅ [UserDataEvaluator] RSVP update successful:", result);
+
+        return true;
+    } catch (error) {
+        console.error(
+            "❌ [UserDataEvaluator] Failed to update RSVP status:",
+            error
+        );
+        return false;
+    }
+}
+
 async function handler(runtime: IAgentRuntime, message: Memory) {
     try {
         console.log("🔍 [UserDataEvaluator] Starting handler", {
             messageId: message.id,
             userId: message.userId,
-            roomId: message.roomId
+            roomId: message.roomId,
         });
         const state = await runtime.composeState(message);
         const { agentId, roomId } = state;
@@ -220,8 +270,19 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
         // Log room context
         console.log("🏠 [UserDataEvaluator] Room context:", {
             stateRoomId: roomId,
-            messageRoomId: message.roomId
+            messageRoomId: message.roomId,
         });
+
+        // Log system messages for debugging
+        console.log(
+            "📨 [UserDataEvaluator] Recent messages data:",
+            state.recentMessagesData?.map((msg) => ({
+                id: msg.id,
+                isSystem: msg.content.isSystem,
+                metadata: msg.content.metadata,
+                content: msg.content,
+            }))
+        );
 
         // 1. Get existing user data
         const userDataManager = new MemoryManager({
@@ -277,6 +338,29 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
             "📊 [UserDataEvaluator] Extraction result:",
             extractionResult
         );
+
+        // 4. Handle RSVP status updates if present
+        if (extractionResult.fields.rsvpStatus?.value) {
+            console.log(
+                "🎯 [UserDataEvaluator] RSVP status detected:",
+                extractionResult.fields.rsvpStatus.value
+            );
+
+            const success = await updateRSVPStatus(
+                message.roomId,
+                extractionResult.fields.rsvpStatus.value
+            );
+
+            if (success) {
+                console.log(
+                    "✅ [UserDataEvaluator] RSVP status updated successfully"
+                );
+            } else {
+                console.warn(
+                    "⚠️ [UserDataEvaluator] Failed to update RSVP status"
+                );
+            }
+        }
 
         // 4. Process and store new data while preserving existing
         let userData: UserData = {
@@ -344,7 +428,7 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
             userData,
             missingRequired,
             isComplete: userData.isComplete,
-            roomId: message.roomId
+            roomId: message.roomId,
         });
 
         // 5. Store in memory
@@ -364,7 +448,7 @@ async function handler(runtime: IAgentRuntime, message: Memory) {
         console.log("💾 [UserDataEvaluator] Saving to memory", {
             memoryId: userMemory.id,
             roomId: message.roomId,
-            isUpdate: !!existingId
+            isUpdate: !!existingId,
         });
 
         if (existingId) {

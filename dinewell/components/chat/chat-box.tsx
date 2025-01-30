@@ -44,14 +44,32 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
   const getRoomId = () => {
     // If we have an event ID and invitation token, it's an invite chat
     if (eventId && invitationToken) {
-      return generateInviteRoomId(eventId, invitationToken)
+        console.log("********* Invite Room Id ***********")
+        console.log("eventId", eventId)
+        console.log("invitationToken", invitationToken)
+      const roomId = generateInviteRoomId(eventId, invitationToken);
+      console.log(" [ChatBox] Generated invite room ID:", {
+        eventId,
+        invitationToken,
+        roomId
+      });
+      return roomId;
     }
     // If we have an event ID and user ID, it's a host chat
     if (eventId && user?.id) {
-      return generateHostRoomId(eventId, user.id)
+        console.log("********* Host Room Id ***********")
+        console.log("eventId", eventId)
+        console.log("userId", user.id)
+      const roomId = generateHostRoomId(eventId, user.id);
+      console.log(" [ChatBox] Generated host room ID:", {
+        eventId,
+        userId: user.id,
+        roomId
+      });
+      return roomId;
     }
-    // Default to a generic room ID for the landing page
-    return `default-room-${agentId}`
+
+    throw new Error("Unable to generate room ID: missing required parameters");
   }
 
   const mutation = useMutation({
@@ -59,6 +77,8 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
       if (!agentId) throw new Error("No agent selected")
 
       const roomId = getRoomId()
+
+      console.log("roomId", roomId);
 
       const res = await fetch(`/${agentId}/message`, {
         method: "POST",

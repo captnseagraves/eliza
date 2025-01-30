@@ -15,7 +15,7 @@ export async function POST(
 ) {
     try {
         console.log("[INVITATIONS_POST] Starting invitation creation");
-        
+
         const user = await currentUser();
         if (!user) {
             console.log("[INVITATIONS_POST] No user found");
@@ -26,7 +26,10 @@ export async function POST(
         const eventId = params.eventId;
         const body = await req.json();
         const { phoneNumber, personalMessage } = body;
-        console.log("[INVITATIONS_POST] Request params:", { eventId, phoneNumber });
+        console.log("[INVITATIONS_POST] Request params:", {
+            eventId,
+            phoneNumber,
+        });
 
         if (!phoneNumber || !personalMessage) {
             console.log("[INVITATIONS_POST] Missing required fields");
@@ -60,17 +63,18 @@ export async function POST(
         }
         console.log("[INVITATIONS_POST] Event found:", event.id);
 
-        // Generate shorter invitation token
+        // Generate invitation token and agent room ID
         const invitationToken = nanoid(10);
-        console.log("[INVITATIONS_POST] Generated token:", invitationToken);
+        const agentRoomId = generateInviteRoomId(eventId, invitationToken);
+        console.log(" [INVITATIONS_POST] Generated IDs:", {
+            eventId,
+            invitationToken,
+            agentRoomId,
+        });
 
         // Generate agent user ID from phone number
         const agentUserId = generateUserIdFromPhone(phoneNumber);
         console.log("[INVITATIONS_POST] Generated agent user ID:", agentUserId);
-
-        // Generate agent room ID from event and invitation
-        const agentRoomId = generateInviteRoomId(eventId, invitationToken);
-        console.log("[INVITATIONS_POST] Generated agent room ID:", agentRoomId);
 
         // Create invitation with all required fields
         console.log("[INVITATIONS_POST] Creating invitation");
@@ -90,7 +94,7 @@ export async function POST(
         // Format event details for the agent
         const eventDate = format(new Date(event.date), "EEEE, MMMM d, yyyy");
         const eventTime = formatEventTime(event.time);
-        const eventContext = `You are assisting with an invitation to "${event.name}". The event will be held on ${eventDate} at ${eventTime}, located at ${event.location}. ${event.description ? `The host says: ${event.description}` : ""} The host's personal message is: "${personalMessage}"`;
+        const eventContext = `You are assisting with an invitation to "${event.name}". The event will be held on ${eventDate} at ${eventTime}, located at ${event.location}. ${event.description ? `The host says: ${event.description}` : ""} The host's personal message is: "${personalMessage}". The eventId is ${event.id} and the invitation token is ${invitationToken}`;
         console.log("[INVITATIONS_POST] Event context prepared");
 
         // Send context to agent
@@ -100,35 +104,44 @@ export async function POST(
 
         console.log("[INVITATIONS_POST] Sending context to agent");
         try {
-            const contextResponse = await fetch(`http://localhost:8080/${agentId}/message`, {
-                method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({
-                    text: eventContext,
-                    userId: "system",
-                    roomId: agentRoomId,
-                    isSystem: true,
-                    metadata: {
-                        type: "event_context",
-                        source: "invitation_creation"
-                    }
-                }),
-            });
+            const contextResponse = await fetch(
+                `http://localhost:8080/${agentId}/message`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: eventContext,
+                        userId: "system",
+                        roomId: agentRoomId,
+                        isSystem: true,
+                        metadata: {
+                            type: "event_context",
+                            source: "invitation_creation",
+                            eventId: params.eventId,
+                        },
+                    }),
+                }
+            );
 
             if (!contextResponse.ok) {
                 const errorText = await contextResponse.text();
                 console.error("[INVITATIONS_POST] Agent response not OK:", {
                     status: contextResponse.status,
                     statusText: contextResponse.statusText,
-                    error: errorText
+                    error: errorText,
                 });
             } else {
-                console.log("[INVITATIONS_POST] Context sent to agent successfully");
+                console.log(
+                    "[INVITATIONS_POST] Context sent to agent successfully"
+                );
             }
         } catch (error) {
-            console.error("[INVITATIONS_POST] Failed to send context to agent:", error);
+            console.error(
+                "[INVITATIONS_POST] Failed to send context to agent:",
+                error
+            );
         }
 
         // Send SMS
@@ -141,7 +154,9 @@ export async function POST(
         });
         console.log("[INVITATIONS_POST] SMS sent");
 
-        console.log("[INVITATIONS_POST] Invitation process completed successfully");
+        console.log(
+            "[INVITATIONS_POST] Invitation process completed successfully"
+        );
         return NextResponse.json({ token: invitationToken });
     } catch (error) {
         console.error(
@@ -177,6 +192,47 @@ export async function GET(
         return NextResponse.json(invitations);
     } catch (error) {
         console.error("[INVITATIONS_GET]", error);
+        return new NextResponse("Internal error", { status: 500 });
+    }
+}
+
+export async function PUT(
+    req: NextRequest,
+    { params }: { params: { eventId: string } }
+) {
+    try {
+        const eventId = params.eventId;
+        const body = await req.json();
+        const { invitationToken, status } = body;
+
+        console.log("[INVITATIONS_PUT] Updating invitation", {
+            eventId,
+            invitationToken,
+            status,
+        });
+
+        if (!status || !invitationToken) {
+            return new NextResponse(
+                "Missing required fields (invitationToken and status are required)",
+                { status: 400 }
+            );
+        }
+
+        const invitation = await prisma.invitation.update({
+            where: { invitationToken },
+            data: {
+                status,
+                updatedAt: new Date(),
+            },
+        });
+
+        console.log(
+            "[INVITATIONS_PUT] Invitation updated successfully",
+            invitation
+        );
+        return NextResponse.json(invitation);
+    } catch (error) {
+        console.error("[INVITATIONS_PUT] Error updating invitation:", error);
         return new NextResponse("Internal error", { status: 500 });
     }
 }

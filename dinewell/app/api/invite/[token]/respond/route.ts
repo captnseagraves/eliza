@@ -11,28 +11,34 @@ export async function POST(
     request: Request,
     { params }: { params: { token: string } }
 ) {
-    console.log("1. Starting POST request handler");
+    console.log("📥 [RSVP API] Starting POST request handler", {
+        timestamp: new Date().toISOString(),
+        token: params.token,
+    });
+
     try {
         // Get token from params
         const token = params.token;
-        console.log("2. Token:", token);
+        console.log("🔑 [RSVP API] Processing token:", token);
 
         // Parse body
         const body = await request.json();
-        console.log("3. Body:", body);
+        console.log("📦 [RSVP API] Request body:", body);
         const { status, phoneNumber } = body;
 
         // Validate input
-        if (!status || !phoneNumber) {
-            return new NextResponse("Missing required fields", { status: 400 });
+        if (!status) {
+            console.error("❌ [RSVP API] Missing status in request");
+            return new NextResponse("Status is required", { status: 400 });
         }
 
         if (!["ACCEPTED", "DECLINED"].includes(status)) {
+            console.error("❌ [RSVP API] Invalid status:", status);
             return new NextResponse("Invalid status", { status: 400 });
         }
 
         // Find invitation
-        console.log("4. Finding invitation");
+        console.log("🔍 [RSVP API] Finding invitation");
         const invitation = await prisma.invitation.findUnique({
             where: { invitationToken: token },
             include: {
@@ -41,17 +47,23 @@ export async function POST(
         });
 
         if (!invitation) {
+            console.error("❌ [RSVP API] Invitation not found");
             return new NextResponse("Not found", { status: 404 });
         }
-        console.log("5. Found invitation:", invitation);
+        console.log("📝 [RSVP API] Found invitation:", invitation);
 
-        // Verify phone number matches invitation
-        if (invitation.phoneNumber !== phoneNumber) {
-            return new NextResponse("Phone number does not match invitation", { status: 403 });
+        // Verify phone number if provided
+        if (phoneNumber && invitation.phoneNumber !== phoneNumber) {
+            console.error(
+                "❌ [RSVP API] Phone number does not match invitation"
+            );
+            return new NextResponse("Phone number does not match invitation", {
+                status: 403,
+            });
         }
 
         // Update invitation
-        console.log("6. Updating invitation");
+        console.log("🔄 [RSVP API] Updating invitation");
         try {
             const updated = await prisma.invitation.update({
                 where: { id: invitation.id },
@@ -63,15 +75,15 @@ export async function POST(
                     event: true,
                 },
             });
-            console.log("7. Update successful:", updated);
+            console.log("📈 [RSVP API] Update successful:", updated);
 
             return NextResponse.json(updated);
         } catch (updateError) {
-            console.error("8. Update failed:", updateError);
+            console.error("❌ [RSVP API] Update failed:", updateError);
             return new NextResponse("Failed to update", { status: 500 });
         }
     } catch (error) {
-        console.error("9. Error:", { error });
+        console.error("❌ [RSVP API] Error:", { error });
         return new NextResponse("Error", { status: 500 });
     }
 }

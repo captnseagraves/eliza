@@ -31,18 +31,18 @@ async function getEvent(eventId: string, userId: string) {
 }
 
 export default async function EventPage({
-  params,
+  params: { eventId },
 }: {
   params: { eventId: string }
 }) {
   const user = await currentUser()
   if (!user) return null
 
-  const event = await getEvent(params.eventId, user.id)
+  const event = await getEvent(eventId, user.id)
 
   return (
     <EventClient
-      params={params}
+      params={{ eventId }}
       event={{
         id: event.id,
         name: event.name,

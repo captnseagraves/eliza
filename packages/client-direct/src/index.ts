@@ -135,10 +135,15 @@ export class DirectClient {
         this.app.post(
             "/:agentId/message",
             async (req: express.Request, res: express.Response) => {
+                console.log("************ INSIDE THE DIRECT CLIENT ******");
+                console.log(req.body);
                 const agentId = req.params.agentId;
                 const roomId = stringToUuid(
                     req.body.roomId ?? "default-room-" + agentId
                 );
+
+                console.log("roomId", roomId);
+
                 const userId = stringToUuid(req.body.userId ?? "user");
 
                 let runtime = this.agents.get(agentId);
