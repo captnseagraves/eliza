@@ -1,7 +1,6 @@
 import {
     IAgentRuntime,
     Memory,
-    State,
     MemoryManager,
     elizaLogger,
     composeContext,
@@ -29,13 +28,14 @@ interface ExtractionResult {
     };
 }
 
-interface EventContext {
-    type: string;
-    source: string;
-    eventId: string;
-    invitationToken: string;
-    phoneNumber: string;
-}
+// RSVP guidance for generating responses
+const RSVP_GUIDANCE = {
+    description: "RSVP status for dinner events",
+    valid: "attending, declined",
+    invalid: "maybe, unsure, or ambiguous responses",
+    instructions:
+        "Set as 'attending' for positive responses, 'declined' for negative ones",
+};
 
 const EXTRACTION_TEMPLATE = `
 TASK: Extract RSVP intention from the conversation.
@@ -70,31 +70,31 @@ Return a JSON object with this structure:
     "requires_confirmation": boolean,
     "references_previous": boolean
   }
+}`;
+
+async function generateRSVPResponse(
+    status: string,
+    runtime: IAgentRuntime
+): Promise<string> {
+    if (status === "ATTENDING") {
+        return "I'm delighted to confirm your attendance! I've marked you as attending for the dinner. Looking forward to a wonderful gathering!";
+    } else {
+        return (
+            `I notice you haven't confirmed your attendance yet. As ${runtime.character.name}, I'd love to know if you'll join us!\n\n` +
+            `Please let me know with a clear response:\n` +
+            `✓ For attending: "yes", "I'll come", "I'll be there"\n` +
+            `✗ For declining: "no", "I can't come", "I won't be there"\n\n` +
+            `Your response helps us plan the perfect dinner!`
+        );
+    }
 }
-
-# EXAMPLES
-1. "I don't want to go to dinner"
-   {
-     "fields": {
-       "rsvpStatus": { "value": "declined", "override": true }
-     },
-     "context": { "implicit": false, "requires_confirmation": false, "references_previous": false }
-   }
-
-2. "Yes, I'll be there!"
-   {
-     "fields": {
-       "rsvpStatus": { "value": "attending", "override": true }
-     },
-     "context": { "implicit": false, "requires_confirmation": false, "references_previous": false }
-   }`;
 
 async function validate(
     runtime: IAgentRuntime,
     message: Memory
 ): Promise<boolean> {
     try {
-        console.log("🔍 [rsvpEvaluator] Starting quick validation", {
+        console.log("🔍 [rsvpEvaluator2] Starting quick validation", {
             messageId: message.id,
             userId: message.userId,
             roomId: message.roomId,
@@ -102,20 +102,20 @@ async function validate(
 
         // 1. Skip if message is from agent
         if (message.userId === runtime.agentId) {
-            console.log("⏭️ [rsvpEvaluator] Skipping agent message");
+            console.log("⏭️ [rsvpEvaluator2] Skipping agent message");
             return false;
         }
 
         // 2. Skip if message is a system message
         if (message.content.isSystem) {
-            console.log("⏭️ [rsvpEvaluator] Skipping system message");
+            console.log("⏭️ [rsvpEvaluator2] Skipping system message");
             return false;
         }
 
         // 3. Skip if message is too short (less than 2 words)
         const messageText = message.content.text || "";
         if (messageText.trim().split(/\s+/).length < 2) {
-            console.log("⏭️ [rsvpEvaluator] Message too short");
+            console.log("⏭️ [rsvpEvaluator2] Message too short");
             return false;
         }
 
@@ -124,14 +124,14 @@ async function validate(
             /\b(would|love|confirm|want|don't want|wont|won't|can't|cannot|decline|accept|yes|no|go|dinner|attend|come|rsvp|officially)\b/i;
 
         if (!rsvpMarkers.test(messageText)) {
-            console.log("⏭️ [rsvpEvaluator] No RSVP markers found");
+            console.log("⏭️ [rsvpEvaluator2] No RSVP markers found");
             return false;
         }
 
-        console.log("✅ [rsvpEvaluator] Processing RSVP change");
+        console.log("✅ [rsvpEvaluator2] Processing RSVP change");
         return true;
     } catch (error) {
-        elizaLogger.error("Error in rsvpEvaluator validate:", error);
+        elizaLogger.error("Error in rsvpEvaluator2 validate:", error);
         return false;
     }
 }
@@ -141,12 +141,11 @@ async function updateRSVPStatus(
     status: string
 ): Promise<boolean> {
     try {
-        console.log("🔄 [rsvpEvaluator] Updating RSVP status:", {
+        console.log("🔄 [rsvpEvaluator2] Updating RSVP status:", {
             roomId,
             status,
         });
 
-        // Get the base URL from environment variables, defaulting to localhost if not set
         const baseUrl =
             process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -166,10 +165,10 @@ async function updateRSVPStatus(
         }
 
         const result = await response.json();
-        console.log("✅ [rsvpEvaluator] RSVP update successful:", result);
+        console.log("✅ [rsvpEvaluator2] RSVP update successful:", result);
         return true;
     } catch (error) {
-        console.error("❌ [rsvpEvaluator] Error updating RSVP status:", error);
+        console.error("❌ [rsvpEvaluator2] Error updating RSVP status:", error);
         return false;
     }
 }
@@ -179,53 +178,53 @@ async function handler(
     message: Memory
 ): Promise<boolean> {
     try {
-        console.log("🔍 [rsvpEvaluator] Starting handler", {
+        console.log("🔍 [rsvpEvaluator2] Starting handler", {
             messageId: message.id,
             userId: message.userId,
             roomId: message.roomId,
         });
 
         const state = await runtime.composeState(message);
-        console.log("👤 [rsvpEvaluator] Composing state", state);
+        const { roomId } = state;
 
         // Compose context for LLM
+        console.log("📝 [rsvpEvaluator2] Composing extraction context");
         const context = composeContext({
             state,
             template: EXTRACTION_TEMPLATE,
         });
-        console.log("📝 [rsvpEvaluator] Composing extraction context", context);
 
         // Extract information using LLM
+        console.log("🤖 [rsvpEvaluator2] Generating extraction result");
         const result = await generateText({
             runtime,
             context,
             modelClass: ModelClass.SMALL,
         });
-        console.log("🤖 [rsvpEvaluator] Generating extraction result", result);
 
         let extractionResult: ExtractionResult;
         try {
             extractionResult = JSON.parse(result) as ExtractionResult;
             if (!extractionResult || !extractionResult.fields) {
                 console.log(
-                    "⚠️ [rsvpEvaluator] Invalid extraction result format"
+                    "⚠️ [rsvpEvaluator2] Invalid extraction result format"
                 );
                 return false;
             }
         } catch (e) {
             console.log(
-                "⚠️ [rsvpEvaluator] Failed to parse extraction result:",
+                "⚠️ [rsvpEvaluator2] Failed to parse extraction result:",
                 e
             );
             return false;
         }
 
-        console.log("📊 [rsvpEvaluator] Extraction result:", extractionResult);
+        console.log("📊 [rsvpEvaluator2] Extraction result:", extractionResult);
 
         // Process RSVP status if present
         const status = extractionResult.fields.rsvpStatus?.value;
         if (status) {
-            console.log("🎫 [rsvpEvaluator] Processing RSVP status:", {
+            console.log("🎫 [rsvpEvaluator2] Processing RSVP status:", {
                 roomId: message.roomId,
                 status,
             });
@@ -237,51 +236,57 @@ async function handler(
 
             if (success) {
                 console.log(
-                    "✅ [rsvpEvaluator] RSVP status updated successfully"
+                    "✅ [rsvpEvaluator2] RSVP status updated successfully"
                 );
+
+                // Generate response based on status
+                const responseText = await generateRSVPResponse(
+                    status.toUpperCase(),
+                    runtime
+                );
+
+                // Save both status and response to memory
+                const userDataManager = new MemoryManager({
+                    runtime,
+                    tableName: "user_data",
+                });
+
+                await userDataManager.createMemory({
+                    roomId: message.roomId,
+                    userId: message.userId,
+                    agentId: message.agentId,
+                    content: {
+                        text: JSON.stringify({
+                            rsvpStatus: status,
+                            lastUpdated: Date.now(),
+                            responseText: responseText,
+                        }),
+                    },
+                });
+
+                return true;
             } else {
-                console.warn("⚠️ [rsvpEvaluator] Failed to update RSVP status");
+                console.warn(
+                    "⚠️ [rsvpEvaluator2] Failed to update RSVP status"
+                );
                 return false;
             }
-
-            // Save to memory
-            const userDataManager = new MemoryManager({
-                runtime,
-                tableName: "user_data",
-            });
-            console.log(
-                "👤 [rsvpEvaluator] Composing user data manager",
-                userDataManager
-            );
-
-            await userDataManager.createMemory({
-                roomId: message.roomId,
-                userId: message.userId,
-                agentId: message.agentId,
-                content: {
-                    text: JSON.stringify({
-                        rsvpStatus: status,
-                        lastUpdated: Date.now(),
-                    }),
-                },
-            });
-
-            return true;
         }
 
         return false;
     } catch (error) {
-        elizaLogger.error("Error in rsvpEvaluator handler:", error);
+        elizaLogger.error("Error in rsvpEvaluator2 handler:", error);
         return false;
     }
 }
 
-export const rsvpEvaluator: Evaluator = {
-    name: "RSVP_STATUS",
+export const rsvpEvaluator2: Evaluator = {
+    name: "rsvp_evaluator2",
     similes: ["GET_RSVP_STATUS", "UPDATE_RSVP_STATUS"],
     validate,
     handler,
-    description: "Extract and maintain users RSVP status",
+    description:
+        "Extract and maintain users RSVP status with response generation",
     examples: [
         {
             context: "User {{user1}} is responding to a dinner invitation",
@@ -294,7 +299,7 @@ export const rsvpEvaluator: Evaluator = {
                     },
                 },
             ],
-            outcome: "USER_DATA - Extract RSVP status",
+            outcome: "USER_DATA - Extract RSVP status and generate response",
         },
     ],
 };

@@ -260,6 +260,8 @@ export default function InvitePage() {
                 <div className="mt-4">
                   <div className="flex flex-wrap gap-2 justify-center">
                     {[
+                    "Yes, I would love to come to dinner",
+"I wont be able to attend",
                       "What are you?",
                       "What can the Spirit of Dinner do?",
                       "What are the details of the dinner?",
