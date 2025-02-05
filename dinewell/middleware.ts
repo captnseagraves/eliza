@@ -13,7 +13,7 @@ const isPublicRoute = createRouteMatcher([
     "/events(.*)",
     "/api/events(.*)", // Events API routes
     "/verify(.*)", // Verify pages
-    "/api/verify(.*)" // Verify API routes
+    "/api/verify(.*)", // Verify API routes
 ]);
 
 // Protected routes (everything else except public routes)

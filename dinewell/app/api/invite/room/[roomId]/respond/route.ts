@@ -11,7 +11,7 @@ export async function POST(
     request: Request,
     { params }: { params: { roomId: string } }
 ) {
-    console.log("📥 [RSVP Room API] Starting POST request handler", {
+    console.log(" [RSVP Room API] Starting POST request handler", {
         timestamp: new Date().toISOString(),
         roomId: params.roomId,
     });
@@ -19,16 +19,16 @@ export async function POST(
     try {
         // Get roomId from params
         const roomId = params.roomId;
-        console.log("🔑 [RSVP Room API] Processing roomId:", roomId);
+        console.log(" [RSVP Room API] Processing roomId:", roomId);
 
         // Parse body
         const body = await request.json();
-        console.log("📦 [RSVP Room API] Request body:", body);
+        console.log(" [RSVP Room API] Request body:", body);
         const { status } = body;
 
         // Validate input
         if (!status) {
-            console.error("❌ [RSVP Room API] Missing status in request");
+            console.error(" [RSVP Room API] Missing status in request");
             return new NextResponse("Missing status", { status: 400 });
         }
 
@@ -44,7 +44,7 @@ export async function POST(
 
         if (!invitation) {
             console.error(
-                "❌ [RSVP Room API] No invitation found for roomId:",
+                " [RSVP Room API] No invitation found for roomId:",
                 roomId
             );
             return new NextResponse("Invitation not found", { status: 404 });
@@ -64,7 +64,7 @@ export async function POST(
             },
         });
 
-        console.log("✅ [RSVP Room API] Successfully updated invitation:", {
+        console.log(" [RSVP Room API] Successfully updated invitation:", {
             id: updatedInvitation.id,
             status: updatedInvitation.status,
             respondedAt: updatedInvitation.respondedAt,
@@ -82,7 +82,36 @@ export async function POST(
             },
         });
     } catch (error) {
-        console.error("❌ [RSVP Room API] Error processing request:", error);
+        console.error(" [RSVP Room API] Error processing request:", error);
         return new NextResponse("Internal Server Error", { status: 500 });
+    }
+}
+
+export async function GET(
+    request: Request,
+    { params }: { params: { roomId: string } }
+) {
+    try {
+        const { roomId } = params;
+
+        const rsvp = await prisma.rsvp.findFirst({
+            where: {
+                roomId: roomId,
+            },
+            orderBy: {
+                createdAt: 'desc'
+            },
+            select: {
+                status: true
+            }
+        });
+
+        return NextResponse.json({ status: rsvp?.status || undefined });
+    } catch (error) {
+        console.error('Error fetching RSVP status:', error);
+        return NextResponse.json(
+            { error: 'Failed to fetch RSVP status' },
+            { status: 500 }
+        );
     }
 }

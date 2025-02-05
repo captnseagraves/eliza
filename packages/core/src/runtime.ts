@@ -630,15 +630,15 @@ export class AgentRuntime implements IAgentRuntime {
 
         console.log("\nFinal evaluators to run:", evaluatorsToRun.map(e => e.name));
 
-        evaluatorsToRun.forEach((evaluator: Evaluator) => {
+        // Wait for all handlers to complete
+        await Promise.all(evaluatorsToRun.map(async (evaluator: Evaluator) => {
             if (!evaluator?.handler) {
                 console.log(`No handler for ${evaluator.name}`);
                 return;
             }
-
             console.log(`Running handler for ${evaluator.name}`);
-            evaluator.handler(this, message);
-        });
+            return evaluator.handler(this, message);
+        }));
 
         console.log("=== EVALUATOR SELECTION END ===\n");
         return parsedResult;

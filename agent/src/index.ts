@@ -44,8 +44,8 @@ import readline from "readline";
 import { fileURLToPath } from "url";
 import yargs from "yargs";
 
-import { userDataProvider } from "./userDataProvider.js";
-import { userDataEvaluator } from "./userDataEvaluator.js";
+import { rsvpProvider } from "./rsvpProvider.js";
+import { rsvpEvaluator } from "./rsvpEvaluator.js";
 
 import { factEvaluator } from "./fact.js";
 import { factsProvider } from "./facts.js";
@@ -371,8 +371,8 @@ export function createAgent(
         databaseAdapter: db,
         token,
         modelProvider: character.modelProvider,
-        evaluators: [userDataEvaluator],
-        providers: [userDataProvider],
+        evaluators: [rsvpEvaluator],
+        providers: [rsvpProvider],
         character,
         plugins: [
             nodePlugin,
