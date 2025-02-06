@@ -734,7 +734,7 @@ An error if the participant cannot be added.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:642](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L642)
+[packages/core/src/runtime.ts:652](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L652)
 
 ***
 
@@ -770,7 +770,7 @@ The user name to ensure the existence of.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:658](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L658)
+[packages/core/src/runtime.ts:668](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L668)
 
 ***
 
@@ -794,7 +794,7 @@ The user name to ensure the existence of.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:678](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L678)
+[packages/core/src/runtime.ts:688](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L688)
 
 ***
 
@@ -824,7 +824,7 @@ The user name to ensure the existence of.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:695](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L695)
+[packages/core/src/runtime.ts:705](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L705)
 
 ***
 
@@ -855,7 +855,7 @@ An error if the room cannot be created.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:731](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L731)
+[packages/core/src/runtime.ts:741](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L741)
 
 ***
 
@@ -885,7 +885,7 @@ The state of the agent.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:744](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L744)
+[packages/core/src/runtime.ts:754](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L754)
 
 ***
 
@@ -907,4 +907,4 @@ The state of the agent.
 
 #### Defined in
 
-[packages/core/src/runtime.ts:1190](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L1190)
+[packages/core/src/runtime.ts:1200](https://github.com/ai16z/eliza/blob/main/packages/core/src/runtime.ts#L1200)

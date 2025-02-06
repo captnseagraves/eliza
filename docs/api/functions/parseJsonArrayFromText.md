@@ -2,7 +2,7 @@
 
 # Function: parseJsonArrayFromText()
 
-> **parseJsonArrayFromText**(`text`): `any`[]
+> **parseJsonArrayFromText**(`text`): `string`[]
 
 Parses a JSON array from a given text. The function looks for a JSON block wrapped in triple backticks
 with `json` language identifier, and if not found, it searches for an array pattern within the text.
@@ -17,7 +17,7 @@ The input text from which to extract and parse the JSON array.
 
 ## Returns
 
-`any`[]
+`string`[]
 
 An array parsed from the JSON string if successful; otherwise, null.
 

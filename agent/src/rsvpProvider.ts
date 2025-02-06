@@ -118,13 +118,15 @@ export const rsvpProvider: Provider = {
             cachedData.rsvpStatus = status;
 
             let response =
-                "Check the current message for an RSVP response. If one is present then acknowledge it and does not ask for it again. otherwise following prompt below.\n\n";
+                "Check the current message for an RSVP response. If an RSVP response is present clearly confirm their status, `You are confirmed to attend the dinner.` or `You are confirmed as not attending the dinner.`, and do not ask for it again. Otherwise following prompt below.\n\n";
 
             // Current RSVP Status
             if (cachedData.rsvpStatus === "ATTENDING") {
                 response += `Current Status: ${cachedData.rsvpStatus}\n\n`;
+                response += `Reply directly with the phrase "You are confirmed to attend the dinner."`;
             } else if (cachedData.rsvpStatus === "DECLINED") {
                 response += `Current Status: ${cachedData.rsvpStatus}\n\n`;
+                response += `Reply directly with the phrase "You are confirmed as not attending the dinner."`;
             } else {
                 response +=
                     `CURRENT TASK FOR ${runtime.character.name}:\n` +
