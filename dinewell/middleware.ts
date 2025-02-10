@@ -9,6 +9,7 @@ const isPublicRoute = createRouteMatcher([
     "/api/agents(.*)", // Agent API routes
     "/agents(.*)", // Agent pages
     "/:agentId/message", // Agent message routes
+    "/:agentId/messages/:roomId", // Agent messages routes
     "/dashboard(.*)",
     "/events(.*)",
     "/api/events(.*)", // Events API routes

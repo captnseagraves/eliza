@@ -49,6 +49,10 @@ const nextConfig = {
       {
         source: '/:agentId/message',
         destination: 'http://localhost:8080/:agentId/message',
+      },
+      {
+        source: '/:agentId/messages/:roomId',
+        destination: 'http://localhost:8080/:agentId/messages/:roomId',
       }
     ]
   },

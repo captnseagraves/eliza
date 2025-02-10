@@ -137,6 +137,7 @@ export class DirectClient {
             async (req: express.Request, res: express.Response) => {
                 console.log("************ INSIDE THE DIRECT CLIENT ******");
                 console.log(req.body);
+
                 const agentId = req.params.agentId;
                 const roomId = stringToUuid(
                     req.body.roomId ?? "default-room-" + agentId
@@ -247,6 +248,93 @@ export class DirectClient {
                     res.json([response, message]);
                 } else {
                     res.json([response]);
+                }
+            }
+        );
+
+        this.app.get(
+            "/:agentId/messages/:roomId",
+            async (req: express.Request, res: express.Response) => {
+                console.log(
+                    "************ INSIDE THE DIRECT CLIENT GET MESSAGES ******"
+                );
+                console.log("userId from request:", req.body.userId);
+                const agentId = req.params.agentId;
+                const roomId = stringToUuid(req.params.roomId);
+                const userId = stringToUuid(req.body.userId ?? "user");
+
+                let runtime = this.agents.get(agentId);
+
+                // if runtime is null, look for runtime with the same name
+                if (!runtime) {
+                    runtime = Array.from(this.agents.values()).find(
+                        (a) =>
+                            a.character.name.toLowerCase() ===
+                            agentId.toLowerCase()
+                    );
+                }
+
+                if (!runtime) {
+                    res.status(404).send("Agent not found");
+                    return;
+                }
+
+                await runtime.ensureConnection(
+                    userId,
+                    roomId,
+                    undefined,
+                    undefined,
+                    "direct"
+                );
+
+                try {
+                    const messages = await runtime.messageManager.getMemories({
+                        roomId,
+                        count: 20,
+                        unique: true,
+                    });
+
+                    // Sort messages by creation time
+                    const sortedMessages = messages.sort(
+                        (a, b) => a.createdAt - b.createdAt
+                    );
+
+                    // Get all unique user IDs (excluding agent)
+                    const uniqueUserIds = new Set(
+                        sortedMessages
+                            .filter((msg) => msg.userId !== runtime?.agentId)
+                            .map((msg) => msg.userId)
+                    );
+
+                    let messagesToReturn;
+
+                    // If there's only one user or no users, return empty array
+                    if (uniqueUserIds.size <= 1) {
+                        messagesToReturn = [];
+                    } else {
+                        // If multiple users, find the last user and filter for their messages
+                        const lastUserMessage = [...sortedMessages]
+                            .reverse()
+                            .find((msg) => msg.userId !== runtime?.agentId);
+                        
+                        const lastUserId = lastUserMessage?.userId;
+
+                        messagesToReturn = sortedMessages.filter(
+                            (msg) =>
+                                msg.userId === lastUserId ||
+                                msg.userId === runtime?.agentId
+                        );
+                    }
+
+                    // If the first message is from the agent, remove it
+                    if (messagesToReturn?.length > 0 && messagesToReturn[0].userId === runtime?.agentId) {
+                        messagesToReturn = messagesToReturn.slice(1);
+                    }
+
+                    res.json(messagesToReturn);
+                } catch (error) {
+                    console.error("Error fetching chat history:", error);
+                    res.status(500).send("Failed to fetch chat history");
                 }
             }
         );

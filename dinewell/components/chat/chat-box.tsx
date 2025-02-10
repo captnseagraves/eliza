@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, forwardRef, useImperativeHandle, useRef, useEffect } from "react"
+import { useState, forwardRef, useImperativeHandle, useRef, useEffect, useMemo } from "react"
 import { useMutation } from "@tanstack/react-query"
 import { Input } from "@/components/ui/input"
 import { Card } from "@/components/ui/card"
@@ -29,7 +29,7 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
     initialMessage ? [{ text: initialMessage, user: "assistant" }] : []
   )
   const { agentId, isLoading, error } = useFirstAgent()
-  const { user } = useUser()
+  const { user, isLoaded: isUserLoaded } = useUser()
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = () => {
@@ -41,7 +41,12 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
   }, [messages])
 
   // Generate the appropriate room ID based on context
-  const getRoomId = () => {
+  const roomId = useMemo(() => {
+    // Wait for user to load
+    if (!isUserLoaded) {
+      return null;
+    }
+
     // If we have an event ID and invitation token, it's an invite chat
     if (eventId && invitationToken) {
         console.log("********* Invite Room Id ***********")
@@ -69,14 +74,61 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
       return roomId;
     }
 
-    throw new Error("Unable to generate room ID: missing required parameters");
-  }
+    // Return null if we don't have required parameters yet
+    return null;
+  }, [eventId, invitationToken, user?.id, isUserLoaded])
+
+  // Load message history
+  const [isHistoryLoading, setIsHistoryLoading] = useState(true)
+
+  useEffect(() => {
+    const loadMessageHistory = async () => {
+      if (!agentId || !roomId || !isUserLoaded) {
+        setIsHistoryLoading(false)
+        return
+      }
+
+      try {
+        console.log("roomId", roomId);
+        console.log("agentId", agentId);
+
+        const res = await fetch(`/${agentId}/messages/${roomId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        })
+
+        if (!res.ok) throw new Error('Failed to fetch message history')
+
+        const data = await res.json()
+        // Transform API messages to match current Message interface
+        const transformedMessages = data.map((apiMessage: any): Message => ({
+          text: apiMessage.content.text,
+          user: apiMessage.content.user ? "assistant" : "user"
+        }))
+
+        // If we have history, use it; otherwise use initial message
+        if (transformedMessages.length > 0) {
+          setMessages(transformedMessages)
+        } else if (initialMessage) {
+          setMessages([{ text: initialMessage, user: "assistant" }])
+        }
+      } catch (error) {
+        console.error('Error fetching message history:', error)
+      } finally {
+        setIsHistoryLoading(false)
+      }
+    }
+
+    loadMessageHistory()
+  }, [agentId, roomId, initialMessage, isUserLoaded])
 
   const mutation = useMutation({
     mutationFn: async (text: string) => {
-      if (!agentId) throw new Error("No agent selected")
-
-      const roomId = getRoomId()
+      if (!agentId || !roomId) {
+        throw new Error("Cannot send message: missing required parameters")
+      }
 
       console.log("roomId", roomId);
 
@@ -131,10 +183,10 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
     }
   }))
 
-  if (isLoading) {
+  if (isHistoryLoading) {
     return (
       <Card className="flex flex-col h-[427px] w-full shadow-lg items-center justify-center">
-        <p className="text-muted-foreground">Connecting to Mr. Dinewell...</p>
+        <p className="text-muted-foreground">Loading chat history...</p>
       </Card>
     )
   }
@@ -151,6 +203,14 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
     return (
       <Card className="flex flex-col h-[427px] w-full shadow-lg items-center justify-center">
         <p className="text-muted-foreground">No agents available. Please start the agent server.</p>
+      </Card>
+    )
+  }
+
+  if (!isUserLoaded) {
+    return (
+      <Card className="flex flex-col h-[427px] w-full shadow-lg items-center justify-center">
+        <p className="text-muted-foreground">Loading user data...</p>
       </Card>
     )
   }
@@ -198,10 +258,10 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
           />
           <button
             type="submit"
-            disabled={!input.trim()}
-            className="px-4 py-2 bg-rose-600 text-white rounded hover:bg-rose-700 transition disabled:opacity-50"
+            disabled={!input.trim() || mutation.isPending}
+            className="px-4 py-2 bg-rose-500 text-white rounded hover:bg-rose-600 transition"
           >
-            Send
+            {mutation.isPending ? "..." : "Send"}
           </button>
         </div>
       </form>
