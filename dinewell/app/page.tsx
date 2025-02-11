@@ -1,40 +1,80 @@
+"use client"
+
 import { SignInButton, SignOutButton, SignedIn, SignedOut } from "@clerk/nextjs"
 import Link from "next/link"
-import { ChatBox } from "@/components/chat/chat-box"
+import { ChatBox, ChatBoxRef } from "@/components/chat/chat-box"
+import { useRef } from "react"
+import { Twitter } from "lucide-react"
+import Image from "next/image"
+
+const CONTRACT_ADDRESS = "0xc4ecaf115cbce3985748c58dccfc4722fef8247c"
+const DEX_SCREENER_URL = `https://dexscreener.com/base/${CONTRACT_ADDRESS}`
 
 export default function Home() {
+  const chatRef = useRef<ChatBoxRef>(null)
+
   return (
     <main className="min-h-screen bg-gradient-to-b from-rose-50 to-yellow-50">
-      {/* Navigation */}
-      <nav className="absolute top-0 right-0 p-6 flex gap-3">
-        <SignedIn>
-          <Link
-            href="/dashboard"
-            className="px-6 py-3 rounded-full bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 transition-colors"
-          >
-            Dashboard
+      {/* Header */}
+      <header className="fixed top-0 inset-x-0 bg-white border-b z-[100] pointer-events-auto">
+        <div className="container mx-auto px-4 h-16 flex justify-between items-center">
+          <Link href="/" className="text-lg font-medium">
+            Dinner.fun
           </Link>
-          <SignOutButton>
-            <button className="px-6 py-3 rounded-full bg-gray-600 text-white text-sm font-semibold hover:bg-gray-700 transition-colors">
-              Sign out
-            </button>
-          </SignOutButton>
-        </SignedIn>
-        <SignedOut>
-          <SignInButton>
-            <button className="px-6 py-3 rounded-full bg-rose-600 text-white text-sm font-semibold hover:bg-rose-700 transition-colors">
-              Sign in
-            </button>
-          </SignInButton>
-        </SignedOut>
-      </nav>
+          <a
+            href={DEX_SCREENER_URL}
+            className="text-sm text-muted-foreground hover:text-rose-600 transition-colors hidden md:block"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {CONTRACT_ADDRESS}
+          </a>
+          <div className="flex items-center gap-4">
+            <Link
+              href="https://x.com/misterdinewell"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-80 transition-opacity"
+            >
+              <Twitter className="h-5 w-5" />
+            </Link>
+            <Link
+              href={DEX_SCREENER_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hover:opacity-80 transition-opacity"
+            >
+              <Image
+                src="/dexscreener.png"
+                alt="Dexscreener"
+                width={20}
+                height={20}
+              />
+            </Link>
+            <SignedIn>
+              <SignOutButton>
+                <button className="text-sm text-muted-foreground hover:text-rose-600 transition-colors">
+                  Sign out
+                </button>
+              </SignOutButton>
+            </SignedIn>
+            <SignedOut>
+              <SignInButton mode="modal">
+                <button className="text-sm text-muted-foreground hover:text-rose-600 transition-colors">
+                  Sign in
+                </button>
+              </SignInButton>
+            </SignedOut>
+          </div>
+        </div>
+      </header>
 
-      {/* Hero Section */}
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16">
+      {/* Main Content */}
+      <div className="container mx-auto px-4 pt-24 pb-16">
         <div className="text-center">
-          <div className="transform translate-y-[-1rem] opacity-100 transition duration-1000">
+          <div className="mt-8">
             <h1 className="text-6xl font-bold text-gray-900 mb-6">
-              Welcome to <span className="text-rose-600">The Spirit of Dinner</span>
+              Welcome to <span className="text-rose-600">Dinner 🍽️</span>
             </h1>
             <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
               Your personal AI dinner host, fostering connections over shared meals.
@@ -42,22 +82,36 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="flex gap-4 justify-center mb-16">
-            <SignedOut>
-              <SignInButton>
-                <button className="px-8 py-4 rounded-full bg-rose-600 text-white text-lg font-semibold hover:bg-rose-700 transition-colors">
-                  Start Your Gathering
-                </button>
-              </SignInButton>
-            </SignedOut>
-          </div>
-
           {/* Chat Box */}
-          <div className="mt-8">
+          <div className="mt-8 space-y-8">
             <ChatBox
+              ref={chatRef}
               eventId="landing"
-              initialMessage="Welcome to the Spirit of Dinner! How can I help you create meaningful connections today?"
+              initialMessage="How can I help you create meaningful connections today?"
             />
+            <div>
+              <div className="flex flex-wrap gap-2 justify-center">
+                {[
+                  "Tell me about Dinner.fun",
+                  "How do I host a dinner?",
+                  "What is the Spirit of Dinner?",
+                  "What is $DINE?",
+                  "How does this work?",
+                  "Schedule a dinner for me",
+                  "What makes Dinner.fun special?",
+                  "Who is behind Dinner.fun?"
+                ].map((question, index) => (
+                  <div
+                    key={index}
+                    onClick={() => chatRef.current?.sendMessage(question)}
+                    className="bg-gray-100 rounded-full px-4 py-2 text-sm text-muted-foreground hover:bg-gray-200 transition-colors cursor-pointer whitespace-nowrap"
+                    role="button"
+                  >
+                    {question}
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
 

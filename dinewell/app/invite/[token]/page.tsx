@@ -105,7 +105,7 @@ export default function InvitePage() {
       <header className="fixed top-0 inset-x-0 bg-white border-b z-[100] pointer-events-auto">
         <div className="container mx-auto px-4 h-16 flex justify-between items-center">
           <Link href="/" className="text-lg font-medium">
-            dinner.fun
+            Dinner.fun
           </Link>
           <a
             href="https://dexscreener.com/base/0xc4ecaf115cbce3985748c58dccfc4722fef8247c"
