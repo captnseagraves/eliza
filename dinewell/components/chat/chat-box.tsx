@@ -102,16 +102,42 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
         if (!res.ok) throw new Error('Failed to fetch message history')
 
         const data = await res.json()
+
+        console.log("data", data);
+
+        // Process messages to show only what we want
+        const messages = [...data];
+        
+        // Get the first 3-4 messages where the invitation should be
+        const firstMessages = messages.slice(0, 4);
+        const invitationMessageIndex = firstMessages.findIndex(
+          msg => msg.content?.type === "invitation_message"
+        );
+
+        if (invitationMessageIndex !== -1) {
+          // Keep only the invitation message from the beginning
+          const invitationMessage = firstMessages[invitationMessageIndex];
+          // Get all messages starting from index 3 (where user interaction begins)
+          const laterMessages = messages.slice(3);
+          // Replace all messages with invitation message + later conversation
+          messages.length = 0; // Clear the array
+          messages.push(invitationMessage, ...laterMessages);
+        }
+
         // Transform API messages to match current Message interface
-        const transformedMessages = data.map((apiMessage: any): Message => ({
+        const transformedMessages = messages.map((apiMessage: any): Message => ({
           text: apiMessage.content.text,
-          user: apiMessage.content.user ? "assistant" : "user"
+          user: apiMessage.content.user === "user" ? "user" : "assistant"
         }))
+
+        console.log("transformedMessages", transformedMessages);
 
         // If we have history, use it; otherwise use initial message
         if (transformedMessages.length > 0) {
+            console.log("********* Using history ***********")
           setMessages(transformedMessages)
         } else if (initialMessage) {
+            console.log("********* Using initial message ***********")
           setMessages([{ text: initialMessage, user: "assistant" }])
         }
       } catch (error) {

@@ -113,11 +113,54 @@ export async function POST(
                     },
                     body: JSON.stringify({
                         text: eventContext,
-                        userId: "system",
+                        user: "Spirit of Dinner",
+                        userId: agentId,
                         roomId: agentRoomId,
                         isSystem: true,
                         metadata: {
                             type: "event_context",
+                            source: "invitation_creation",
+                            eventId: params.eventId,
+                        },
+                    }),
+                }
+            );
+
+            if (!contextResponse.ok) {
+                const errorText = await contextResponse.text();
+                console.error("[INVITATIONS_POST] Agent response not OK:", {
+                    status: contextResponse.status,
+                    statusText: contextResponse.statusText,
+                    error: errorText,
+                });
+            } else {
+                console.log(
+                    "[INVITATIONS_POST] Context sent to agent successfully"
+                );
+            }
+        } catch (error) {
+            console.error(
+                "[INVITATIONS_POST] Failed to send context to agent:",
+                error
+            );
+        }
+
+        try {
+            const contextResponse = await fetch(
+                `http://localhost:8080/${agentId}/message`,
+                {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                    },
+                    body: JSON.stringify({
+                        text: personalMessage,
+                        user: "Spirit of Dinner",
+                        userId: agentId,
+                        roomId: agentRoomId,
+                        isSystem: true,
+                        metadata: {
+                            type: "invitation_message",
                             source: "invitation_creation",
                             eventId: params.eventId,
                         },

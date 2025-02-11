@@ -136,7 +136,7 @@ export class DirectClient {
             "/:agentId/message",
             async (req: express.Request, res: express.Response) => {
                 console.log("************ INSIDE THE DIRECT CLIENT ******");
-                console.log(req.body);
+                console.log("req.body", req.body);
 
                 const agentId = req.params.agentId;
                 const roomId = stringToUuid(
@@ -146,6 +146,18 @@ export class DirectClient {
                 console.log("roomId", roomId);
 
                 const userId = stringToUuid(req.body.userId ?? "user");
+
+                let user = "user";
+                let type = "";
+
+                if (req.body.user === "Spirit of Dinner") {
+                    user = req.body.user;
+                }
+
+                // Only try to access metadata.type if metadata exists
+                if (req.body.metadata?.type === "invitation_message") {
+                    type = req.body.metadata.type;
+                }
 
                 let runtime = this.agents.get(agentId);
 
@@ -176,10 +188,14 @@ export class DirectClient {
 
                 const content: Content = {
                     text,
+                    user,
+                    type,
                     attachments: [],
                     source: "direct",
                     inReplyTo: undefined,
                 };
+
+                console.log("content", content);
 
                 const userMessage = {
                     content,
@@ -299,39 +315,15 @@ export class DirectClient {
                         (a, b) => a.createdAt - b.createdAt
                     );
 
-                    // Get all unique user IDs (excluding agent)
-                    const uniqueUserIds = new Set(
-                        sortedMessages
-                            .filter((msg) => msg.userId !== runtime?.agentId)
-                            .map((msg) => msg.userId)
-                    );
-
-                    let messagesToReturn;
-
-                    // If there's only one user or no users, return empty array
-                    if (uniqueUserIds.size <= 1) {
-                        messagesToReturn = [];
-                    } else {
-                        // If multiple users, find the last user and filter for their messages
-                        const lastUserMessage = [...sortedMessages]
-                            .reverse()
-                            .find((msg) => msg.userId !== runtime?.agentId);
-                        
-                        const lastUserId = lastUserMessage?.userId;
-
-                        messagesToReturn = sortedMessages.filter(
-                            (msg) =>
-                                msg.userId === lastUserId ||
-                                msg.userId === runtime?.agentId
-                        );
-                    }
-
                     // If the first message is from the agent, remove it
-                    if (messagesToReturn?.length > 0 && messagesToReturn[0].userId === runtime?.agentId) {
-                        messagesToReturn = messagesToReturn.slice(1);
+                    if (
+                        sortedMessages.length > 0 &&
+                        sortedMessages[0].userId === runtime?.agentId
+                    ) {
+                        sortedMessages.shift();
                     }
 
-                    res.json(messagesToReturn);
+                    res.json(sortedMessages);
                 } catch (error) {
                     console.error("Error fetching chat history:", error);
                     res.status(500).send("Failed to fetch chat history");
