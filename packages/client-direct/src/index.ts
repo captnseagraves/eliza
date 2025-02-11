@@ -149,6 +149,7 @@ export class DirectClient {
 
                 let user = "user";
                 let type = "";
+                let origin = "";
 
                 if (req.body.user === "Spirit of Dinner") {
                     user = req.body.user;
@@ -157,6 +158,12 @@ export class DirectClient {
                 // Only try to access metadata.type if metadata exists
                 if (req.body.metadata?.type === "invitation_message") {
                     type = req.body.metadata.type;
+                }
+
+                console.log("req.body.origin", req.body.origin);
+
+                if (req.body.origin === "landing") {
+                    origin = req.body.origin;
                 }
 
                 let runtime = this.agents.get(agentId);
@@ -190,6 +197,7 @@ export class DirectClient {
                     text,
                     user,
                     type,
+                    origin,
                     attachments: [],
                     source: "direct",
                     inReplyTo: undefined,

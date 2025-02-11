@@ -83,11 +83,25 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
 
   useEffect(() => {
     const loadMessageHistory = async () => {
-      if (!agentId || !roomId || !isUserLoaded) {
-        setIsHistoryLoading(false)
+      if (!isUserLoaded) {
         return
       }
 
+      // Skip message history for landing page
+      if (eventId === "landing") {
+        setIsHistoryLoading(false)
+        if (initialMessage) {
+          setMessages([{ text: initialMessage, user: "assistant" }])
+        }
+        return
+      }
+
+      // Wait for both agentId and roomId to be available
+      if (!agentId || !roomId) {
+        return
+      }
+
+      setIsHistoryLoading(true)
       try {
         console.log("roomId", roomId);
         console.log("agentId", agentId);
@@ -99,7 +113,9 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
           },
         })
 
-        if (!res.ok) throw new Error('Failed to fetch message history')
+        if (!res.ok) {
+          throw new Error("Failed to fetch message history")
+        }
 
         const data = await res.json()
 
@@ -107,7 +123,7 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
 
         // Process messages to show only what we want
         const messages = [...data];
-        
+
         // Get the first 3-4 messages where the invitation should be
         const firstMessages = messages.slice(0, 4);
         const invitationMessageIndex = firstMessages.findIndex(
@@ -148,15 +164,13 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
     }
 
     loadMessageHistory()
-  }, [agentId, roomId, initialMessage, isUserLoaded])
+  }, [agentId, roomId, initialMessage, isUserLoaded, eventId])
 
   const mutation = useMutation({
     mutationFn: async (text: string) => {
       if (!agentId || !roomId) {
         throw new Error("Cannot send message: missing required parameters")
       }
-
-      console.log("roomId", roomId);
 
       const res = await fetch(`/${agentId}/message`, {
         method: "POST",
@@ -167,6 +181,7 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
           text,
           userId: user?.id || "invite",
           roomId,
+          origin: eventId,
         }),
       })
 
@@ -254,7 +269,7 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
                 }`}
               >
                 <div
-                  className={`rounded-lg px-4 py-2 max-w-[80%] ${
+                  className={`rounded-lg px-4 py-2 max-w-[80%] whitespace-pre-wrap ${
                     message.user === "user"
                       ? "bg-rose-600 text-white"
                       : "bg-gray-100"

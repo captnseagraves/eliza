@@ -78,6 +78,12 @@ export const rsvpProvider: Provider = {
         state?: State
     ): Promise<string> => {
         try {
+            // 2. Skip if message is from the landing page
+            if (message.content.origin === "landing") {
+                console.log("⏭️ [rsvpProvider] Skipping landing message");
+                return "CONTINUE";
+            }
+
             // Initialize with empty data
             let cachedData: RSVPData = { ...emptyRSVPData };
 

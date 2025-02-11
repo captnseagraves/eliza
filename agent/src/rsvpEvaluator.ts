@@ -95,6 +95,8 @@ async function validate(
 ): Promise<boolean> {
     try {
         console.log("🔍 [rsvpEvaluator] Starting quick validation", {
+            message,
+            runtime,
             messageId: message.id,
             userId: message.userId,
             roomId: message.roomId,
@@ -106,9 +108,11 @@ async function validate(
             return false;
         }
 
-        // 2. Skip if message is a system message
-        if (message.content.isSystem) {
-            console.log("⏭️ [rsvpEvaluator] Skipping system message");
+        console.log("origin", message.content.origin);
+
+        // 2. Skip if message is from the landing page
+        if (message.content.origin === "landing") {
+            console.log("⏭️ [rsvpEvaluator] Skipping landing message");
             return false;
         }
 
@@ -184,6 +188,12 @@ async function handler(
             userId: message.userId,
             roomId: message.roomId,
         });
+
+        // Skip if message is from the landing page
+        if (message.content.origin === "landing") {
+            console.log("⏭️ [rsvpEvaluator] Skipping landing message");
+            return false;
+        }
 
         const state = await runtime.composeState(message);
         console.log("👤 [rsvpEvaluator] Composing state", state);
