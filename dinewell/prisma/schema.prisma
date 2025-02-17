@@ -7,6 +7,28 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model User {
+  id                    String       @id @default(cuid())
+  agentUserId          String       @unique  // Primary index for agent interactions
+  invitations          Invitation[] // One-to-many relationship with invitations
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  
+  // Nylas Calendar Integration
+  nylasAccessToken     String?      // OAuth access token
+  nylasRefreshToken    String?      // OAuth refresh token
+  nylasAccountId       String?      @unique // Unique Nylas account identifier
+  calendarConnected    Boolean      @default(false)
+  calendarProvider     String?      // e.g., "google", "outlook", "apple"
+  calendarId           String?      // Primary calendar ID
+  calendarEmail        String?      // Email associated with calendar
+  lastCalendarSync     DateTime?    // Track last sync time
+  calendarScope        String?      // Stored OAuth scopes
+  
+  @@index([agentUserId])
+  @@index([nylasAccountId])
+}
+
 model Event {
   id          String       @id @default(cuid())
   name        String
@@ -36,6 +58,7 @@ model Invitation {
   respondedAt     DateTime?
   agentRoomId     String
   event           Event     @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [agentUserId], references: [agentUserId])
 
   @@index([eventId])
   @@index([invitationToken])

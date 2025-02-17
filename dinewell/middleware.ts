@@ -15,11 +15,13 @@ const isPublicRoute = createRouteMatcher([
     "/api/events(.*)", // Events API routes
     "/verify(.*)", // Verify pages
     "/api/verify(.*)", // Verify API routes
+    "/api/calendar/auth", // Calendar auth API route
+    "/api/calendar/callback", // Calendar callback API route
 ]);
 
 // Protected routes (everything else except public routes)
 const isProtectedRoute = createRouteMatcher([
-    "/((?!invite|api/invite|api/agents|agents|events|api/events|verify|api/verify).*)",
+    "/((?!invite|api/invite|api/agents|agents|events|api/events|verify|api/verify|api/calendar).*)",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {

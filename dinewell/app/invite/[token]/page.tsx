@@ -14,11 +14,13 @@ import { ChatBox, ChatBoxRef } from "@/components/chat/chat-box"
 import { Map } from "@/components/ui/map"
 import { formatEventTime } from "@/lib/utils"
 import { AddToCalendarButton } from 'add-to-calendar-button-react'
+import { CalendarConnect } from "@/components/calendar/calendar-connect"
 
 interface Invitation {
   id: string
   status: "PENDING" | "ACCEPTED" | "DECLINED"
   personalMessage: string
+  agentUserId: string
   event: {
     id: string
     name: string
@@ -86,6 +88,23 @@ export default function InvitePage() {
   const handleVerificationSuccess = async (data: { phoneNumber: string }) => {
     setVerifiedPhone(data.phoneNumber)
     setIsVerified(true)
+  }
+
+  const handleCalendarSuccess = async (tokens: any) => {
+    try {
+      const response = await fetch("/api/calendar/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tokens }),
+      })
+
+      if (!response.ok) {
+        throw new Error("Failed to save calendar connection")
+      }
+
+    } catch (error) {
+      console.error("Failed to save calendar connection:", error)
+    }
   }
 
   if (!invitation) {
@@ -208,6 +227,10 @@ export default function InvitePage() {
                         </svg>
                         <span className="font-bold">Location</span>
                       </button>
+
+                      <CalendarConnect
+                        agentUserId={invitation.agentUserId}
+                      />
                     </div>
                   </div>
                 </div>

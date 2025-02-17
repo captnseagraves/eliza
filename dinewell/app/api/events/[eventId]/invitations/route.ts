@@ -76,20 +76,53 @@ export async function POST(
         const agentUserId = generateUserIdFromPhone(phoneNumber);
         console.log("[INVITATIONS_POST] Generated agent user ID:", agentUserId);
 
-        // Create invitation with all required fields
-        console.log("[INVITATIONS_POST] Creating invitation");
-        const invitation = await prisma.invitation.create({
-            data: {
-                eventId,
-                phoneNumber,
-                invitationToken,
-                personalMessage,
-                status: "PENDING",
-                agentUserId,
-                agentRoomId,
-            },
+        // Create or update user and invitation in a transaction
+        const { user: agentUser, invitation } = await prisma.$transaction(
+            async (tx: typeof prisma) => {
+                // Check if user exists
+                let user = await tx.user.findUnique({
+                    where: { agentUserId },
+                });
+
+                let isNewUser = false;
+                if (!user) {
+                    console.log("[INVITATIONS_POST] Creating new user");
+                    user = await tx.user.create({
+                        data: {
+                            agentUserId,
+                            calendarConnected: false,
+                        },
+                    });
+                    isNewUser = true;
+                } else {
+                    console.log(
+                        "[INVITATIONS_POST] Using existing user:",
+                        user.agentUserId
+                    );
+                }
+
+                // Create invitation with user relation
+                console.log("[INVITATIONS_POST] Creating invitation");
+                const invitation = await tx.invitation.create({
+                    data: {
+                        eventId,
+                        phoneNumber,
+                        invitationToken,
+                        personalMessage,
+                        status: "PENDING",
+                        agentUserId,
+                        agentRoomId,
+                    },
+                });
+
+                return { user, invitation, isNewUser };
+            }
+        );
+
+        console.log("[INVITATIONS_POST] Transaction completed successfully:", {
+            userId: agentUser.agentUserId,
+            invitationId: invitation.id,
         });
-        console.log("[INVITATIONS_POST] Invitation created:", invitation.id);
 
         // Format event details for the agent
         const eventDate = format(new Date(event.date), "EEEE, MMMM d, yyyy");
@@ -186,16 +219,6 @@ export async function POST(
                 error
             );
         }
-
-        // Send SMS
-        console.log("[INVITATIONS_POST] Sending SMS");
-        await sendInvitationSMS({
-            to: phoneNumber,
-            eventName: event.name,
-            personalMessage,
-            invitationToken,
-        });
-        console.log("[INVITATIONS_POST] SMS sent");
 
         console.log(
             "[INVITATIONS_POST] Invitation process completed successfully"

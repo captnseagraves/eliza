@@ -33,7 +33,10 @@ export async function GET(
             return new NextResponse("Invitation not found", { status: 404 });
         }
 
-        console.log(" [RSVP Status API] Found invitation status:", invitation.status);
+        console.log(
+            " [RSVP Status API] Found invitation status:",
+            invitation.status
+        );
 
         // Return the status
         return NextResponse.json({
