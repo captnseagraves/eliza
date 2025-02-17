@@ -7,6 +7,10 @@ import { Card } from "@/components/ui/card"
 import { useFirstAgent } from "@/hooks/useFirstAgent"
 import { useUser } from "@clerk/nextjs"
 import { generateHostRoomId, generateInviteRoomId } from "@/lib/room-id"
+import ReactMarkdown from "react-markdown"
+import remarkGfm from "remark-gfm"
+import rehypeRaw from "rehype-raw"
+import rehypeSanitize from "rehype-sanitize"
 
 interface Message {
   text: string
@@ -275,7 +279,9 @@ export const ChatBox = forwardRef<ChatBoxRef, ChatBoxProps>(({ eventId, invitati
                       : "bg-gray-100"
                   }`}
                 >
-                  {message.text}
+                  <ReactMarkdown>
+                    {message.text}
+                  </ReactMarkdown>
                 </div>
               </div>
             ))
